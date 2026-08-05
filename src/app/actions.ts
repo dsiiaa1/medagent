@@ -202,10 +202,7 @@ export async function getDashboardCases() {
   const { data, error } = await admin
     .from('cases')
     .select(
-      'id, nama, age_value, age_unit, age_months, jenis_kelamin, keluhan_utama, ' +
-      'vital_signs, waktu_masuk, current_node, esi_score, triage_warna, ' +
-      'auto_scoring_eligible, confidence_level, override_triggered, triage_flags, ' +
-      'verification_status, verified_by, verified_at, error_message'
+      'id, nama, age_value, age_unit, age_months, jenis_kelamin, keluhan_utama, vital_signs, waktu_masuk, current_node, esi_score, triage_warna, auto_scoring_eligible, confidence_level, override_triggered, triage_flags, verification_status, verified_by, verified_at, error_message'
     )
     .order('esi_score', { ascending: true, nullsFirst: false })
     .order('waktu_masuk', { ascending: true })
