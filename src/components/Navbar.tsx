@@ -3,6 +3,7 @@
  */
 
 import Link from 'next/link';
+import { Siren } from 'lucide-react';
 
 export function Navbar() {
   return (
@@ -30,9 +31,10 @@ export function Navbar() {
             </Link>
             <Link
               href="/input"
-              className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 flex items-center gap-1.5"
             >
-              + Pasien Baru
+              <Siren className="w-4 h-4" />
+              Pasien Baru
             </Link>
           </nav>
         </div>

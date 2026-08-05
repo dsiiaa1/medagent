@@ -16,6 +16,10 @@ import type {
   CaseRow, CaseTraceRow, SoapSummary, DrugInteraction,
   RagReference, TriageWarna, VerificationStatus, VitalSigns,
 } from '@/lib/supabase';
+import { 
+  ArrowLeft, Activity, Pill, History, FileText, 
+  BookOpen, BrainCircuit, AlertTriangle, Info, Zap 
+} from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,29 +37,33 @@ function formatDateTime(iso: string) {
 function VitalRow({ label, value, unit, critical }: { label: string; value?: number | null; unit: string; critical?: boolean }) {
   if (value === undefined || value === null) {
     return (
-      <div className="flex justify-between text-sm py-1 border-b border-gray-100">
-        <span className="text-gray-500">{label}</span>
-        <span className="text-gray-300 italic">Tidak diisi</span>
+      <div className="flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-0">
+        <span className="text-gray-500 font-medium">{label}</span>
+        <span className="text-gray-300 italic text-xs">Tidak diisi</span>
       </div>
     );
   }
   return (
-    <div className={`flex justify-between text-sm py-1 border-b border-gray-100 ${critical ? 'font-semibold' : ''}`}>
-      <span className="text-gray-600">{label}</span>
-      <span className={critical ? 'text-red-600' : 'text-gray-900'}>
-        {value} {unit} {critical && '⚡'}
+    <div className={`flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-0 ${critical ? 'bg-red-50/50 -mx-2 px-2 rounded-lg border-transparent' : ''}`}>
+      <span className={`font-medium ${critical ? 'text-red-700' : 'text-gray-600'}`}>{label}</span>
+      <span className={`font-bold font-mono ${critical ? 'text-red-700' : 'text-gray-900'}`}>
+        {value} <span className="text-[10px] font-normal uppercase opacity-70 ml-0.5">{unit}</span>
       </span>
     </div>
   );
 }
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, icon, children, headerRight }: { title: string; icon: React.ReactNode; children: React.ReactNode, headerRight?: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-gray-100 bg-gray-50 px-5 py-3">
-        <h2 className="text-sm font-semibold text-gray-800">{title}</h2>
+    <section className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col h-full">
+      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h2 className="text-sm font-bold text-gray-800 tracking-wide uppercase">{title}</h2>
+        </div>
+        {headerRight}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-5 flex-grow">{children}</div>
     </section>
   );
 }
@@ -85,116 +93,152 @@ export default async function CaseDetailPage({ params }: Props) {
   const hasCriticalVital = Object.values(criticalVitals).some(Boolean);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       {/* Back */}
-      <div className="mb-5">
-        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-800">
-          ← Kembali ke Dashboard
+      <div className="mb-6">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
         </Link>
       </div>
 
       {/* Case header */}
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{c.nama}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {c.age_value} {c.age_unit} · {c.jenis_kelamin} · Masuk: {formatDateTime(c.waktu_masuk)}
-            </p>
-            <p className="mt-2 text-sm text-gray-700 font-medium">
-              Keluhan: <span className="font-normal">{c.keluhan_utama}</span>
-            </p>
+      <div className="mb-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+        {/* Accent Bar */}
+        <div className={`absolute left-0 top-0 bottom-0 w-2 ${
+            c.triage_warna === 'Merah'  ? 'bg-red-500' :
+            c.triage_warna === 'Kuning' ? 'bg-amber-400' :
+            c.triage_warna === 'Hijau'  ? 'bg-emerald-500' :
+            c.triage_warna === 'Hitam'  ? 'bg-gray-800' :
+            'bg-gray-200'
+        }`} />
+
+        <div className="pl-3">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{c.nama}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm font-medium text-gray-600">
+            <span className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-md">
+               {c.age_value} {c.age_unit}
+            </span>
+            <span className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-md">
+              {c.jenis_kelamin}
+            </span>
+            <span className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-md">
+              <span className="opacity-70">Masuk:</span> {formatDateTime(c.waktu_masuk)}
+            </span>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <TriageBadge
-              esiScore={c.esi_score}
-              warna={c.triage_warna as TriageWarna | null}
-              autoScoringEligible={c.auto_scoring_eligible}
-              overrideTriggered={c.override_triggered ?? false}
-              size="lg"
-            />
-            {c.confidence_level && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                c.confidence_level === 'high'   ? 'bg-green-100 text-green-700' :
-                c.confidence_level === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-red-100 text-red-700'
-              }`}>
-                Confidence: {c.confidence_level}
-              </span>
-            )}
+          <div className="mt-4 bg-gray-50/80 p-3 rounded-lg border border-gray-100 inline-block">
+            <p className="text-sm text-gray-800 font-medium">
+              <span className="text-gray-500 mr-1">Keluhan:</span> {c.keluhan_utama}
+            </p>
           </div>
         </div>
+        
+        <div className="flex flex-col items-start md:items-end gap-3 w-full md:w-auto">
+          <TriageBadge
+            esiScore={c.esi_score}
+            warna={c.triage_warna as TriageWarna | null}
+            autoScoringEligible={c.auto_scoring_eligible}
+            overrideTriggered={c.override_triggered ?? false}
+            size="lg"
+          />
+          {c.confidence_level && (
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg border ${
+              c.confidence_level === 'high'   ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+              c.confidence_level === 'medium' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+              'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              Confidence: {c.confidence_level}
+            </span>
+          )}
+        </div>
+      </div>
 
-        {/* Flags */}
+      {/* Warnings & Processing States */}
+      <div className="mb-8 space-y-3">
         {c.triage_flags?.includes('gejala_atipikal') && (
-          <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800">
-            ⚠️ <strong>Lansia:</strong> Waspadai presentasi gejala tidak khas. Ambang ESI dewasa digunakan — verifikasi klinis lebih menyeluruh diperlukan.
+          <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900 shadow-sm">
+            <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+            <div>
+              <strong>Pasien Lansia:</strong> Waspadai presentasi gejala tidak khas. Ambang ESI dewasa digunakan — verifikasi klinis lebih menyeluruh diperlukan.
+            </div>
           </div>
         )}
         {!c.auto_scoring_eligible && (
-          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-            ℹ️ <strong>Kategori usia di luar cakupan skor otomatis MVP</strong> — perlu penilaian klinis langsung. Skor ESI tidak dihitung secara otomatis.
+          <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 shadow-sm">
+            <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <strong>Kategori usia di luar cakupan skor otomatis MVP.</strong> Perlu penilaian klinis langsung. Skor ESI tidak dihitung secara otomatis.
+            </div>
           </div>
         )}
         {isProcessing && (
-          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full border-2 border-blue-400/40 border-t-blue-600 animate-spin" />
-            Agent sedang memproses kasus ini...
+          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm font-semibold text-blue-900 shadow-sm">
+            <span className="h-5 w-5 rounded-full border-2 border-blue-600/30 border-t-blue-600 animate-spin" />
+            Agent AI sedang memproses dan menganalisis kasus ini...
           </div>
         )}
         {c.current_node === 'error' && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-            ⚠️ Terjadi kesalahan saat memproses: {c.error_message ?? 'Unknown error'}. Kasus perlu penilaian manual.
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-sm">
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <strong>Terjadi kesalahan sistem saat memproses:</strong> {c.error_message ?? 'Unknown error'}. Kasus ini membutuhkan penilaian manual penuh.
+            </div>
           </div>
         )}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
         {/* Left column: vitals + drug interactions */}
-        <div className="space-y-5 lg:col-span-1">
+        <div className="space-y-6 lg:col-span-4">
 
           {/* Critical vital highlight (§7.5 #5 — automation bias mitigation) */}
           {hasCriticalVital && (
-            <div className="rounded-xl border-2 border-red-400 bg-red-50 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-red-700 mb-2">
-                ⚡ Parameter Vital Kritis (Pemicu Override)
-              </p>
-              {criticalVitals.spo2      && <p className="text-sm text-red-800 font-semibold">SpO2 {vitals.spo2}% — sangat rendah</p>}
-              {criticalVitals.systolic  && <p className="text-sm text-red-800 font-semibold">TD Sistol {vitals.systolic} mmHg — hipotensi</p>}
-              {criticalVitals.heart_rate && <p className="text-sm text-red-800 font-semibold">HR {vitals.heart_rate} bpm — aritmia</p>}
-              {criticalVitals.gcs       && <p className="text-sm text-red-800 font-semibold">GCS {vitals.gcs} — gangguan kesadaran</p>}
+            <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-3 border-b border-red-100 pb-2">
+                <Zap className="w-4 h-4 text-red-600 fill-red-600" />
+                <h3 className="text-xs font-black uppercase tracking-wide text-red-800">
+                  Pemicu Override (Kritis)
+                </h3>
+              </div>
+              <ul className="space-y-2">
+                {criticalVitals.spo2      && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> SpO2 {vitals.spo2}% (Sangat Rendah)</li>}
+                {criticalVitals.systolic  && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Sistol {vitals.systolic} mmHg (Hipotensi)</li>}
+                {criticalVitals.heart_rate && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> HR {vitals.heart_rate} bpm (Aritmia)</li>}
+                {criticalVitals.gcs       && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> GCS {vitals.gcs} (Penurunan Kesadaran)</li>}
+              </ul>
             </div>
           )}
 
           {/* Tanda Vital */}
-          <SectionCard title="📊 Tanda Vital">
-            <VitalRow label="SpO2"          value={vitals.spo2}             unit="%" critical={criticalVitals.spo2} />
-            <VitalRow label="TD Sistol"     value={vitals.systolic}         unit="mmHg" critical={criticalVitals.systolic} />
-            <VitalRow label="TD Diastol"    value={vitals.diastolic}        unit="mmHg" />
-            <VitalRow label="Detak Jantung" value={vitals.heart_rate}       unit="bpm" critical={criticalVitals.heart_rate} />
-            <VitalRow label="Laju Napas"    value={vitals.respiratory_rate} unit="x/mnt" />
-            <VitalRow label="Suhu"          value={vitals.temperature}      unit="°C" />
-            <VitalRow label="GCS"           value={vitals.gcs}              unit="" critical={criticalVitals.gcs} />
+          <SectionCard title="Tanda Vital" icon={<Activity className="w-4 h-4 text-blue-500" />}>
+            <div className="flex flex-col">
+              <VitalRow label="SpO2"          value={vitals.spo2}             unit="%" critical={criticalVitals.spo2} />
+              <VitalRow label="TD Sistol"     value={vitals.systolic}         unit="mmHg" critical={criticalVitals.systolic} />
+              <VitalRow label="TD Diastol"    value={vitals.diastolic}        unit="mmHg" />
+              <VitalRow label="Detak Jantung" value={vitals.heart_rate}       unit="bpm" critical={criticalVitals.heart_rate} />
+              <VitalRow label="Laju Napas"    value={vitals.respiratory_rate} unit="x/mnt" />
+              <VitalRow label="Suhu"          value={vitals.temperature}      unit="°C" />
+              <VitalRow label="GCS"           value={vitals.gcs}              unit="" critical={criticalVitals.gcs} />
+            </div>
           </SectionCard>
 
           {/* Riwayat Medis */}
-          <SectionCard title="📋 Riwayat Medis">
+          <SectionCard title="Riwayat Medis" icon={<History className="w-4 h-4 text-emerald-500" />}>
             {(['kondisi_kronis', 'alergi', 'obat_dikonsumsi'] as const).map((field) => {
               const labels = { kondisi_kronis: 'Kondisi Kronis', alergi: 'Alergi', obat_dikonsumsi: 'Obat Dikonsumsi' };
               const items = c.riwayat_medis?.[field] ?? [];
               return (
-                <div key={field} className="py-1.5 border-b border-gray-100 last:border-0">
-                  <p className="text-xs font-medium text-gray-500 mb-0.5">{labels[field]}</p>
+                <div key={field} className="py-3 border-b border-gray-100 last:border-0 last:pb-0 first:pt-0">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{labels[field]}</p>
                   {items.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {items.map((item: string) => (
-                        <span key={item} className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                        <span key={item} className="text-[11px] font-semibold bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md border border-gray-200">
                           {item}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-300 italic">Tidak ada</span>
+                    <span className="text-xs text-gray-400 italic bg-gray-50 px-2 py-1 rounded-md">Tidak ada data</span>
                   )}
                 </div>
               );
@@ -203,7 +247,7 @@ export default async function CaseDetailPage({ params }: Props) {
         </div>
 
         {/* Right column: SOAP, interactions, trace, verification */}
-        <div className="space-y-5 lg:col-span-2">
+        <div className="space-y-6 lg:col-span-8 flex flex-col">
 
           {/* Verification Panel (§4.7) */}
           <VerificationPanel
@@ -217,24 +261,23 @@ export default async function CaseDetailPage({ params }: Props) {
           />
 
           {/* SOAP Summary */}
-          <SectionCard title="📝 Ringkasan SOAP">
+          <SectionCard title="Draft SOAP AI" icon={<FileText className="w-4 h-4 text-indigo-500" />}>
             {soap ? (
               <SOAPView soap={soap} />
             ) : isProcessing ? (
-              <p className="text-sm text-gray-400 italic flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full border-2 border-gray-300 border-t-gray-500 animate-spin" />
-                Membuat ringkasan SOAP...
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                <span className="h-6 w-6 rounded-full border-2 border-gray-300 border-t-indigo-600 animate-spin mb-3" />
+                <p className="text-sm font-medium">AI sedang menyusun draft SOAP...</p>
+              </div>
             ) : (
-              <p className="text-sm text-gray-400 italic">SOAP tidak tersedia.</p>
+              <div className="py-6 text-center text-sm text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                Draft SOAP tidak dapat dihasilkan.
+              </div>
             )}
-            <p className="mt-3 text-xs text-gray-400 border-t border-gray-100 pt-2">
-              ⚠️ Skor ini tidak menggantikan penilaian visual langsung terhadap pasien. Verifikasi dokter wajib sebelum tindakan.
-            </p>
           </SectionCard>
 
           {/* Drug Interactions */}
-          <SectionCard title="💊 Interaksi Obat">
+          <SectionCard title="Cek Interaksi Obat" icon={<Pill className="w-4 h-4 text-pink-500" />}>
             <DrugInteractionList
               interactions={drugInteractions}
               checkedDrugs={c.riwayat_medis?.obat_dikonsumsi ?? []}
@@ -243,13 +286,17 @@ export default async function CaseDetailPage({ params }: Props) {
 
           {/* RAG References */}
           {ragRefs.length > 0 && (
-            <SectionCard title="📚 Referensi Medis (RAG)">
-              <div className="space-y-2">
+            <SectionCard title="Referensi Medis (RAG)" icon={<BookOpen className="w-4 h-4 text-amber-500" />}>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {ragRefs.map((ref, i) => (
-                  <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                    <p className="text-xs font-semibold text-gray-700">{ref.title}</p>
-                    <p className="text-xs text-gray-600 mt-0.5 line-clamp-3">{ref.content_snippet}</p>
-                    <p className="text-xs text-gray-400 mt-1">Sumber: {ref.source}</p>
+                  <div key={i} className="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-4 transition-colors hover:bg-white hover:border-amber-200 hover:shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">{ref.title}</h4>
+                    <p className="text-xs text-gray-600 mb-3 flex-grow line-clamp-3 leading-relaxed">{ref.content_snippet}</p>
+                    <div className="mt-auto pt-2 border-t border-gray-200/60">
+                       <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100/50 px-2 py-0.5 rounded">
+                         {ref.source}
+                       </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -257,7 +304,7 @@ export default async function CaseDetailPage({ params }: Props) {
           )}
 
           {/* Reasoning Trace */}
-          <SectionCard title="🔍 Jejak Reasoning Agent">
+          <SectionCard title="Jejak Reasoning AI" icon={<BrainCircuit className="w-4 h-4 text-purple-500" />}>
             <ReasoningTrace traces={traces} />
           </SectionCard>
         </div>
