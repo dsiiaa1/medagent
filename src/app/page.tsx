@@ -1,65 +1,118 @@
-import Image from "next/image";
+/**
+ * / — Landing / Home page
+ * Quick entry point with links to dashboard and input.
+ */
 
-export default function Home() {
+import Link from 'next/link';
+
+const FEATURES = [
+  {
+    icon: '🧠',
+    title: 'RAG + ESI Scoring',
+    desc: 'Skor urgensi ESI dihitung oleh rule engine deterministik — LLM hanya ekstraksi data, bukan penentu skor.',
+  },
+  {
+    icon: '💊',
+    title: 'Cek Interaksi Obat',
+    desc: 'Agent farmasi paralel memeriksa 20+ pasangan interaksi obat umum IGD secara otomatis.',
+  },
+  {
+    icon: '📝',
+    title: 'Ringkasan SOAP',
+    desc: 'SOAP note terstruktur dibuat otomatis berdasarkan hasil triase, referensi RAG, dan data pasien.',
+  },
+  {
+    icon: '👨‍⚕️',
+    title: 'Verifikasi Dokter',
+    desc: 'Human-in-the-loop: alur benar-benar berhenti menunggu approve / edit / reject dari dokter.',
+  },
+  {
+    icon: '🔴',
+    title: 'Kode Warna Kemenkes',
+    desc: 'Skor ESI dipetakan ke Merah/Kuning/Hijau/Hitam sesuai Permenkes No. 47/2018.',
+  },
+  {
+    icon: '🔍',
+    title: 'Transparansi Reasoning',
+    desc: 'Setiap langkah agent tercatat di Reasoning Trace — tidak ada keputusan tersembunyi.',
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="mx-auto max-w-5xl px-4 py-12">
+      {/* Hero */}
+      <div className="text-center mb-12">
+        <div className="inline-flex items-center gap-2 rounded-full bg-red-50 border border-red-200 px-4 py-1.5 text-xs font-medium text-red-700 mb-6">
+          🏆 BISA AI — National AI Agent Challenge 2026 · Kategori Healthcare
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
+          MedAgent<span className="text-red-600">-Alpha</span>
+        </h1>
+        <p className="text-lg text-gray-600 max-w-xl mx-auto mb-8 leading-relaxed">
+          AI Agent otonom untuk pra-triase pasien IGD. Mendukung keputusan dokter lebih cepat —
+          bukan menggantikannya.
+        </p>
+        <div className="flex justify-center gap-3 flex-wrap">
+          <Link
+            href="/dashboard"
+            className="rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800 transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Lihat Dashboard
+          </Link>
+          <Link
+            href="/input"
+            className="rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
           >
-            Documentation
-          </a>
+            🚑 Daftarkan Pasien
+          </Link>
         </div>
-      </main>
+      </div>
+
+      {/* Alur sistem */}
+      <div className="mb-12">
+        <h2 className="text-center text-sm font-bold uppercase tracking-wider text-gray-400 mb-6">
+          Alur Sistem
+        </h2>
+        <div className="flex flex-wrap justify-center items-center gap-2 text-sm">
+          {[
+            'Input Pasien',
+            'Retrieve Context (RAG)',
+            'Urgency Scoring (ESI)',
+            'Cek Interaksi Obat',
+            'Generate SOAP',
+            'Verifikasi Dokter',
+          ].map((step, i, arr) => (
+            <span key={step} className="flex items-center gap-2">
+              <span className="rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm">
+                {step}
+              </span>
+              {i < arr.length - 1 && <span className="text-gray-300 font-bold">→</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Features */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-12">
+        {FEATURES.map(({ icon, title, desc }) => (
+          <div key={title} className="rounded-xl bg-white border border-gray-200 p-5 shadow-sm">
+            <div className="text-2xl mb-3">{icon}</div>
+            <h3 className="font-semibold text-gray-900 mb-1">{title}</h3>
+            <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Disclaimer */}
+      <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-5 text-sm text-yellow-800">
+        <p className="font-semibold mb-1">⚠️ Disclaimer Klinis</p>
+        <p className="leading-relaxed">
+          Sistem ini adalah <strong>decision support tool</strong>, bukan pengganti keputusan medis. Seluruh data yang
+          digunakan adalah <strong>data sintetis</strong> — tidak ada data pasien asli. Setiap output wajib diverifikasi
+          dokter sebelum ditindaklanjuti. Skor ESI tidak menggantikan penilaian visual langsung terhadap pasien.
+        </p>
+      </div>
     </div>
   );
 }
