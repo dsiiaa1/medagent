@@ -24,6 +24,7 @@ interface PatientCardProps {
   currentNode: string;
   verificationStatus: VerificationStatus;
   vitalSigns: VitalSigns;
+  triageFlags?: string[];
 }
 
 const NODE_LABELS: Record<string, string> = {
@@ -108,7 +109,7 @@ export function PatientCard({
   id, nama, ageValue, ageUnit, jenisKelamin, keluhanUtama,
   waktuMasuk, esiScore, triageWarna, autoScoringEligible,
   overrideTriggered, confidenceLevel, currentNode,
-  verificationStatus, vitalSigns,
+  verificationStatus, vitalSigns, triageFlags
 }: PatientCardProps) {
   const isProcessing = currentNode !== 'await_doctor_verification'
     && currentNode !== 'completed'
@@ -153,6 +154,7 @@ export function PatientCard({
                 warna={triageWarna}
                 autoScoringEligible={autoScoringEligible}
                 overrideTriggered={overrideTriggered}
+                pediatricAssisted={triageFlags?.includes('pediatric_assisted')}
                 size="sm"
               />
             </div>

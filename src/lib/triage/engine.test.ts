@@ -65,30 +65,44 @@ describe('P0: Confidence low bila ≥2 field vital kosong', () => {
   });
 });
 
-describe('P0: age_months < 144 → auto_scoring_eligible: false', () => {
-  it('Bayi 6 bulan → tidak eligible', () => {
-    const result = evaluateTriage(6, { spo2: 99, systolic: 80, heart_rate: 130 });
-    expect(result.auto_scoring_eligible).toBe(false);
-    expect(result.esi_score).toBeNull();
+describe('P0: Pediatric Logic (Fitur Andalan #1)', () => {
+  it('Bayi 6 bulan → eligible, pediatric_assisted flag, max confidence medium', () => {
+    // 130 HR is normal for baby, 80 systolic normal, SpO2 99 normal
+    const result = evaluateTriage(6, { spo2: 99, systolic: 80, heart_rate: 130, gcs: 15, respiratory_rate: 40, temperature: 36.5 });
+    expect(result.auto_scoring_eligible).toBe(true);
     expect(result.age_category).toBe('Bayi/Balita');
+    expect(result.flags).toContain('pediatric_assisted');
+    expect(result.confidence).toBe('medium'); // capped
+    expect(result.esi_score).not.toBeNull();
   });
 
-  it('Anak 5 tahun (60 bulan) → tidak eligible', () => {
-    const result = evaluateTriage(60, { spo2: 98, heart_rate: 100 });
-    expect(result.auto_scoring_eligible).toBe(false);
+  it('Anak 5 tahun (60 bulan) → extreme HR → ESI 2', () => {
+    // HR 160 is extreme for a 5yo (max normal is 120, max+20 is 140, so >140 -> ESI 2)
+    const result = evaluateTriage(60, { spo2: 98, heart_rate: 160, gcs: 15, respiratory_rate: 20 });
+    expect(result.auto_scoring_eligible).toBe(true);
     expect(result.age_category).toBe('Anak-anak');
+    expect(result.esi_score).toBe(2);
   });
 
-  it('Anak 11 tahun (132 bulan) → tidak eligible', () => {
+  it('Bayi demam tinggi < 3 bulan → ESI 2', () => {
+    const result = evaluateTriage(2, { spo2: 98, temperature: 38.2, heart_rate: 120 });
+    expect(result.esi_score).toBe(2);
+    expect(result.reasoning.some(r => r.includes('bayi < 3 bulan'))).toBe(true);
+  });
+
+  it('Anak 11 tahun (132 bulan) → eligible', () => {
     const result = evaluateTriage(132, { spo2: 98 });
-    expect(result.auto_scoring_eligible).toBe(false);
+    expect(result.auto_scoring_eligible).toBe(true);
+    expect(result.flags).toContain('pediatric_assisted');
   });
 
-  it('Dewasa 12 tahun tepat (144 bulan) → eligible', () => {
+  it('Dewasa 12 tahun tepat (144 bulan) → eligible, NO pediatric_assisted flag', () => {
     const result = evaluateTriage(144, {
       spo2: 98, systolic: 120, heart_rate: 75, gcs: 15, respiratory_rate: 16, temperature: 37.0,
     });
     expect(result.auto_scoring_eligible).toBe(true);
+    expect(result.flags).not.toContain('pediatric_assisted');
+    expect(result.confidence).toBe('high'); // Not capped
   });
 });
 

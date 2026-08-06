@@ -138,6 +138,7 @@ export default async function CaseDetailPage({ params }: Props) {
             warna={c.triage_warna as TriageWarna | null}
             autoScoringEligible={c.auto_scoring_eligible}
             overrideTriggered={c.override_triggered ?? false}
+            pediatricAssisted={c.triage_flags?.includes('pediatric_assisted')}
             size="lg"
           />
           {c.confidence_level && (
@@ -162,7 +163,7 @@ export default async function CaseDetailPage({ params }: Props) {
             </div>
           </div>
         )}
-        {!c.auto_scoring_eligible && (
+        {c.auto_scoring_eligible === false && (
           <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 shadow-sm">
             <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div>
@@ -190,23 +191,7 @@ export default async function CaseDetailPage({ params }: Props) {
         {/* Left column: vitals + drug interactions */}
         <div className="space-y-6 lg:col-span-4">
 
-          {/* Critical vital highlight (§7.5 #5 — automation bias mitigation) */}
-          {hasCriticalVital && (
-            <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-3 border-b border-red-100 pb-2">
-                <Zap className="w-4 h-4 text-red-600 fill-red-600" />
-                <h3 className="text-xs font-black uppercase tracking-wide text-red-800">
-                  Pemicu Override (Kritis)
-                </h3>
-              </div>
-              <ul className="space-y-2">
-                {criticalVitals.spo2      && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> SpO2 {vitals.spo2}% (Sangat Rendah)</li>}
-                {criticalVitals.systolic  && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Sistol {vitals.systolic} mmHg (Hipotensi)</li>}
-                {criticalVitals.heart_rate && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> HR {vitals.heart_rate} bpm (Aritmia)</li>}
-                {criticalVitals.gcs       && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> GCS {vitals.gcs} (Penurunan Kesadaran)</li>}
-              </ul>
-            </div>
-          )}
+          {/* Critical vital highlight moved to VerificationPanel */}
 
           {/* Tanda Vital */}
           <SectionCard title="Tanda Vital" icon={<Activity className="w-4 h-4 text-blue-500" />}>
@@ -258,6 +243,10 @@ export default async function CaseDetailPage({ params }: Props) {
             verificationNote={c.verification_note}
             soap={soap}
             isProcessing={isProcessing}
+            hasCriticalVital={hasCriticalVital}
+            criticalVitals={criticalVitals}
+            vitals={vitals}
+            confidenceLevel={c.confidence_level}
           />
 
           {/* SOAP Summary */}

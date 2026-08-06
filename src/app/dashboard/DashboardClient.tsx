@@ -181,6 +181,7 @@ export function DashboardClient({ initialCases }: Props) {
               currentNode={c.current_node}
               verificationStatus={c.verification_status as VerificationStatus}
               vitalSigns={c.vital_signs as VitalSigns}
+              triageFlags={c.triage_flags}
             />
           ))}
         </div>

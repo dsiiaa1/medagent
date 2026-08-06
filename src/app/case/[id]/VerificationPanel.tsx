@@ -11,8 +11,8 @@ import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { verifyCase, type VerifyFormState } from '@/app/actions';
 import { SOAPEditFields } from '@/components/SOAPView';
-import type { SoapSummary, VerificationStatus } from '@/lib/supabase';
-import { CheckCircle2, XCircle, Edit3, Save, Clock, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
+import type { SoapSummary, VerificationStatus, VitalSigns } from '@/lib/supabase';
+import { CheckCircle2, XCircle, Edit3, Save, Clock, ChevronDown, ChevronUp, UserCheck, Zap, AlertTriangle } from 'lucide-react';
 
 const VERIFY_CONFIG: Record<VerificationStatus, { label: string; icon: any; cls: string }> = {
   pending:  { label: 'Belum diverifikasi', icon: Clock,        cls: 'bg-amber-50 border-amber-200 text-amber-800' },
@@ -29,6 +29,10 @@ interface Props {
   verificationNote: string | null;
   soap: SoapSummary | null;
   isProcessing: boolean;
+  hasCriticalVital?: boolean;
+  criticalVitals?: Record<string, boolean>;
+  vitals?: VitalSigns;
+  confidenceLevel?: string;
 }
 
 function SubmitBtn({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
@@ -57,6 +61,7 @@ function SubmitBtn({ label, value, icon: Icon }: { label: string; value: string;
 
 export function VerificationPanel({
   caseId, verificationStatus, verifiedBy, verifiedAt, verificationNote, soap, isProcessing,
+  hasCriticalVital, criticalVitals, vitals, confidenceLevel
 }: Props) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [state, formAction] = useActionState(verifyCase, {} as VerifyFormState);
@@ -144,14 +149,20 @@ export function VerificationPanel({
             </label>
             <div className="relative">
               <UserCheck className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-              <input
+              <select
                 id="verified_by"
                 name="verified_by"
-                type="text"
-                placeholder="mis. dr. Ayu"
-                defaultValue="dr. Ayu"
-                className="w-full rounded-xl border border-amber-200 bg-white pl-9 pr-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-shadow shadow-sm"
-              />
+                defaultValue=""
+                required
+                className="w-full rounded-xl border border-amber-200 bg-white pl-9 pr-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-shadow shadow-sm appearance-none"
+              >
+                <option value="" disabled>Pilih Dokter Jaga...</option>
+                <option value="dr. Ayu">dr. Ayu</option>
+                <option value="dr. Budi">dr. Budi</option>
+                <option value="dr. Citra">dr. Citra</option>
+                <option value="dr. Doni">dr. Doni</option>
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
@@ -192,6 +203,37 @@ export function VerificationPanel({
                Mode Edit
             </div>
             <SOAPEditFields soap={soap} />
+          </div>
+        )}
+
+        {/* Vital Trigger Spotlight (§7.5 #5) */}
+        {!alreadyVerified && (hasCriticalVital || confidenceLevel === 'low') && (
+          <div className="mb-5 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3 border-b border-red-200/60 pb-2">
+              <AlertTriangle className="w-4 h-4 text-red-600" />
+              <h3 className="text-xs font-black uppercase tracking-wide text-red-800">
+                Peringatan Klinis Sebelum Verifikasi
+              </h3>
+            </div>
+            
+            {hasCriticalVital && criticalVitals && vitals && (
+              <div className="mb-3 last:mb-0">
+                <p className="text-sm font-semibold text-red-800 mb-2">Pemicu Skor Triage ESI-1 (Kritis):</p>
+                <ul className="space-y-1.5 ml-2">
+                  {criticalVitals.spo2      && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> SpO2 {vitals.spo2}% (Sangat Rendah)</li>}
+                  {criticalVitals.systolic  && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Sistol {vitals.systolic} mmHg (Hipotensi)</li>}
+                  {criticalVitals.heart_rate && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> HR {vitals.heart_rate} bpm (Aritmia)</li>}
+                  {criticalVitals.gcs       && <li className="text-sm font-bold text-red-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> GCS {vitals.gcs} (Penurunan Kesadaran)</li>}
+                </ul>
+              </div>
+            )}
+            
+            {confidenceLevel === 'low' && (
+              <div className="mb-3 last:mb-0">
+                <p className="text-sm font-semibold text-red-800">Skor Confidence Rendah:</p>
+                <p className="text-xs text-red-700 mt-1 font-medium">Banyak data vital utama yang kosong. Diperlukan penilaian dan observasi medis secara langsung.</p>
+              </div>
+            )}
           </div>
         )}
 

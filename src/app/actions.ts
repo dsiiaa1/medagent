@@ -7,8 +7,10 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { runOrchestrator } from '@/lib/orchestrator';
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -108,13 +110,14 @@ export async function submitIntake(
     return { message: `Gagal menyimpan data: ${error?.message ?? 'Unknown error'}` };
   }
 
-  // Trigger async orchestrator via internal API (fire-and-forget)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  fetch(`${baseUrl}/api/process-case`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ caseId: newCase.id }),
-  }).catch((e) => console.error('[Action] Failed to trigger orchestrator:', e));
+  // Trigger async orchestrator in the background reliably on Vercel
+  after(async () => {
+    try {
+      await runOrchestrator(newCase.id);
+    } catch (e) {
+      console.error('[Action] Failed to run orchestrator:', e);
+    }
+  });
 
   // Redirect to dashboard
   redirect('/dashboard');

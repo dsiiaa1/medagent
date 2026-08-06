@@ -4,13 +4,14 @@
  */
 
 import type { TriageWarna } from '@/lib/supabase';
-import { Zap } from 'lucide-react';
+import { Zap, Baby } from 'lucide-react';
 
 interface TriageBadgeProps {
   esiScore: number | null;
   warna: TriageWarna | null;
   autoScoringEligible?: boolean | null;
   overrideTriggered?: boolean;
+  pediatricAssisted?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -41,6 +42,7 @@ export function TriageBadge({
   warna,
   autoScoringEligible,
   overrideTriggered = false,
+  pediatricAssisted = false,
   size = 'md',
 }: TriageBadgeProps) {
   // Not eligible for auto scoring
@@ -81,6 +83,11 @@ export function TriageBadge({
       {overrideTriggered && (
         <span className="opacity-90" title="Parameter vital kritis — override aktif">
           <Zap className="w-3.5 h-3.5 fill-current" />
+        </span>
+      )}
+      {pediatricAssisted && (
+        <span className="opacity-90 ml-1" title="Estimasi AI Lensa Pediatrik — Perlu penilaian klinis anak langsung">
+          <Baby className="w-4 h-4 text-current" />
         </span>
       )}
     </span>

@@ -56,8 +56,8 @@ export function getAgeCategory(ageMonths: number): {
   category: AgeCategory;
   eligible: boolean;
 } {
-  if (ageMonths <= 23)   return { category: 'Bayi/Balita', eligible: false };
-  if (ageMonths <= 143)  return { category: 'Anak-anak',   eligible: false };
+  if (ageMonths <= 23)   return { category: 'Bayi/Balita', eligible: true };
+  if (ageMonths <= 143)  return { category: 'Anak-anak',   eligible: true };
   if (ageMonths <= 779)  return { category: 'Dewasa',       eligible: true  };
   return                        { category: 'Lansia',        eligible: true  };
 }
@@ -181,6 +181,78 @@ function computeEsiScore(features: PatientFeatures, reasoning: string[]): number
   return 4;
 }
 
+// ── Pediatric ESI decision tree (§3.1 Fitur Andalan #1) ──────────────────────
+//
+// Lensa Triase Pediatrik: Uses age-specific thresholds (approximate ranges).
+// Confidence level is strictly capped at 'medium' to indicate an assisted estimate.
+
+function computePediatricEsiScore(features: PatientFeatures, ageMonths: number, reasoning: string[]): number {
+  reasoning.push('Menggunakan Lensa Triase Pediatrik (Pediatric Assessment Triangle / Ambang Khusus)');
+
+  // 1. Hard overrides similar to adults (GCS < 9, SpO2 < 90) -> ESI 1
+  if (features.gcs !== undefined && features.gcs < 9) {
+    reasoning.push(`GCS ${features.gcs} < 9 → ESI 1`);
+    return 1;
+  }
+  if (features.spo2 !== undefined && features.spo2 < 90) {
+    reasoning.push(`SpO2 ${features.spo2}% < 90% → hipoksemia berat → ESI 1`);
+    return 1;
+  }
+
+  // Define age-specific thresholds
+  const isBayi = ageMonths <= 11;
+  const isBalita = ageMonths > 11 && ageMonths <= 35; // 1-3 yrs (up to 35 mo)
+
+  const maxHR = isBayi ? 160 : (isBalita ? 150 : 120);
+  const minHR = isBayi ? 100 : (isBalita ? 90 : 70);
+  const maxRR = isBayi ? 60 : (isBalita ? 40 : 30);
+  const minRR = isBayi ? 30 : (isBalita ? 24 : 18);
+
+  // 2. Tachycardia/Bradycardia or Tachypnea
+  if (features.heart_rate !== undefined) {
+    if (features.heart_rate > maxHR + 20 || features.heart_rate < minHR - 20) {
+      reasoning.push(`HR ${features.heart_rate} bpm (di luar rentang normal ekstrim ${minHR}-${maxHR}) → ESI 2`);
+      return 2;
+    }
+    if (features.heart_rate > maxHR || features.heart_rate < minHR) {
+      reasoning.push(`HR ${features.heart_rate} bpm (di luar rentang normal ${minHR}-${maxHR}) → ESI 3`);
+      return 3;
+    }
+  }
+
+  if (features.respiratory_rate !== undefined) {
+    if (features.respiratory_rate > maxRR + 10 || features.respiratory_rate < minRR - 10) {
+      reasoning.push(`RR ${features.respiratory_rate} x/mnt (di luar batas ekstrim ${minRR}-${maxRR}) → ESI 2`);
+      return 2;
+    }
+    if (features.respiratory_rate > maxRR || features.respiratory_rate < minRR) {
+      reasoning.push(`RR ${features.respiratory_rate} x/mnt (di atas/bawah normal ${minRR}-${maxRR}) → ESI 3`);
+      return 3;
+    }
+  }
+
+  // 3. Fever in infants < 3 months is a high risk -> ESI 2
+  if (features.temperature !== undefined && ageMonths < 3 && features.temperature >= 38.0) {
+    reasoning.push(`Suhu ${features.temperature}°C pada bayi < 3 bulan → risiko infeksi serius → ESI 2`);
+    return 2;
+  }
+
+  // 4. General fever
+  if (features.temperature !== undefined && features.temperature >= 38.5) {
+    reasoning.push(`Suhu ${features.temperature}°C ≥ 38.5 → demam tinggi → ESI 3`);
+    return 3;
+  }
+
+  const presentVitals = Object.values(features).filter(v => v !== undefined).length;
+  if (presentVitals >= 3) {
+    reasoning.push('Tanda vital pediatrik dalam batas normal/mendekati normal → estimasi ESI 3 (perlu observasi lanjut)');
+    return 3;
+  }
+
+  reasoning.push('Data vital minimal → estimasi ESI 4 (fallback)');
+  return 4;
+}
+
 // ── Confidence check (§4.3.1 step d) ────────────────────────────────────────
 
 const REQUIRED_VITALS: (keyof PatientFeatures)[] = [
@@ -232,7 +304,13 @@ export function evaluateTriage(ageMonths: number, features: PatientFeatures): Tr
     reasoning.push('Lansia: tambahkan flag gejala_atipikal (ambang ESI dewasa dipakai, waspada presentasi tidak khas)');
   }
 
+  if (age_category === 'Bayi/Balita' || age_category === 'Anak-anak') {
+    flags.push('pediatric_assisted');
+    reasoning.push('Pediatrik: tambahkan flag pediatric_assisted (Skor merupakan estimasi berbantuan AI)');
+  }
+
   if (!auto_scoring_eligible) {
+    // This should no longer trigger unless we introduce a new age category that's ineligible
     const { confidence, missingFields } = computeConfidence(validFeatures);
     return {
       age_category,
@@ -251,26 +329,35 @@ export function evaluateTriage(ageMonths: number, features: PatientFeatures): Tr
   }
 
   // Step d: Confidence check (do this before scoring)
-  const { confidence, missingFields } = computeConfidence(validFeatures);
+  let { confidence, missingFields } = computeConfidence(validFeatures);
+  
+  // Pediatric cap
+  if (flags.includes('pediatric_assisted') && confidence === 'high') {
+    confidence = 'medium';
+    reasoning.push('Confidence di-cap ke "medium" karena ini adalah kasus pediatrik (skor berbantuan)');
+  }
+
   if (missingFields.length > 0) {
     reasoning.push(`Field vital tidak tersedia: ${missingFields.join(', ')}`);
   }
   reasoning.push(`Confidence: ${confidence} (${REQUIRED_VITALS.length - missingFields.length}/${REQUIRED_VITALS.length} field vital terisi)`);
 
-  // Step c: Hard override
-  const override = checkHardOverride(validFeatures);
-  if (override.triggered) {
-    reasoning.push(`HARD OVERRIDE TRIGGERED: ${override.reasons.join('; ')} → PAKSA ESI-1`);
-    return {
-      age_category,
-      auto_scoring_eligible: true,
-      esi_score: 1,
-      triage_warna: 'Merah',
-      override_triggered: true,
-      confidence,
-      flags,
-      reasoning,
-    };
+  // Step c: Hard override (Adults & Seniors only)
+  if (!flags.includes('pediatric_assisted')) {
+    const override = checkHardOverride(validFeatures);
+    if (override.triggered) {
+      reasoning.push(`HARD OVERRIDE TRIGGERED: ${override.reasons.join('; ')} → PAKSA ESI-1`);
+      return {
+        age_category,
+        auto_scoring_eligible: true,
+        esi_score: 1,
+        triage_warna: 'Merah',
+        override_triggered: true,
+        confidence,
+        flags,
+        reasoning,
+      };
+    }
   }
 
   // If confidence is low, don't auto-score
@@ -290,7 +377,13 @@ export function evaluateTriage(ageMonths: number, features: PatientFeatures): Tr
 
   // Step b: Deterministic ESI scoring
   reasoning.push('--- Mulai perhitungan ESI ---');
-  const esiScore = computeEsiScore(validFeatures, reasoning);
+  let esiScore: number;
+  if (flags.includes('pediatric_assisted')) {
+    esiScore = computePediatricEsiScore(validFeatures, ageMonths, reasoning);
+  } else {
+    esiScore = computeEsiScore(validFeatures, reasoning);
+  }
+  
   const triageWarna = esiToWarna(esiScore);
 
   reasoning.push(`Skor ESI final: ${esiScore} → Warna Kemenkes: ${triageWarna}`);
