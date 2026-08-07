@@ -119,8 +119,8 @@ export async function submitIntake(
     }
   });
 
-  // Redirect to dashboard
-  redirect('/dashboard');
+  // Redirect to case detail — shows processing spinner while AI orchestrator runs
+  redirect(`/case/${newCase.id}`);
 }
 
 // ── Action: doctor verification ───────────────────────────────────────────────
