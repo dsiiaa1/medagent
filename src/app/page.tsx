@@ -1,89 +1,193 @@
+'use client';
+
 /**
  * / — Landing / Home page
- * Redesigned for PRD v2.0
+ * Premium redesign: animated hero, live stats strip, animated flow diagram,
+ * feature cards with glassmorphism, dark/light adaptive.
  */
 
 import Link from 'next/link';
 import {
-  Trophy,
-  BrainCircuit,
-  Pill,
-  Stethoscope,
-  Circle,
-  SearchCheck,
-  TriangleAlert,
-  Siren,
-  ClipboardList
+  Trophy, BrainCircuit, Pill, Stethoscope, Circle,
+  SearchCheck, TriangleAlert, Siren, ClipboardList,
+  Zap, ShieldCheck, Activity, ArrowRight, Clock
 } from 'lucide-react';
+
+/* ── Static data ─────────────────────────────────────────────────────────────── */
+
+const STATS = [
+  { value: '<15 dtk', label: 'Waktu analisis' },
+  { value: 'ESI 1–5', label: 'Level triase' },
+  { value: '30+', label: 'Interaksi obat' },
+  { value: '25+', label: 'Referensi RAG' },
+];
 
 const MAIN_FEATURES = [
   {
-    icon: <BrainCircuit className="h-6 w-6 text-red-600" />,
+    icon: BrainCircuit,
+    color: 'var(--brand-red)',
+    bg: 'var(--brand-red-bg)',
     title: 'RAG + ESI Scoring',
-    desc: 'Skor urgensi ESI dihitung oleh rule engine deterministik — LLM hanya ekstraksi data, bukan penentu skor.',
+    desc: 'Rule engine deterministik menghitung skor urgensi ESI 1–5. LLM hanya mengekstrak fitur — bukan penentu skor.',
+    badge: 'AI-Powered',
   },
   {
-    icon: <Pill className="h-6 w-6 text-red-600" />,
+    icon: Pill,
+    color: '#7c3aed',
+    bg: '#f5f3ff',
     title: 'Cek Interaksi Obat',
-    desc: 'Agent farmasi paralel memeriksa 20+ pasangan interaksi obat umum IGD secara otomatis.',
+    desc: 'Agent farmasi paralel memeriksa 30+ pasangan interaksi obat umum IGD secara otomatis dengan sumber Pionas BPOM.',
+    badge: 'Paralel Agent',
   },
   {
-    icon: <Stethoscope className="h-6 w-6 text-red-600" />,
+    icon: Stethoscope,
+    color: '#047857',
+    bg: '#ecfdf5',
     title: 'Verifikasi Dokter',
-    desc: 'Human-in-the-loop: alur benar-benar berhenti menunggu approve / edit / reject dari dokter.',
+    desc: 'Human-in-the-loop sejati: alur berhenti menunggu Approve/Edit/Reject dengan Vital Trigger Spotlight.',
+    badge: 'Human-in-Loop',
   },
 ];
 
 const SECONDARY_FEATURES = [
   {
-    icon: <ClipboardList className="h-5 w-5 text-gray-500" />,
+    icon: ClipboardList,
     title: 'Ringkasan SOAP',
-    desc: 'SOAP note terstruktur dibuat otomatis berdasarkan hasil triase, referensi RAG, dan data pasien.',
+    desc: 'Draft SOAP (S/O/A/P) otomatis berbasis hasil triase, RAG, dan data pasien — siap diedit dokter.',
   },
   {
-    icon: <Circle className="h-5 w-5 fill-red-500 text-red-500" />,
+    icon: Circle,
     title: 'Kode Warna Kemenkes',
     desc: 'Skor ESI dipetakan ke Merah/Kuning/Hijau/Hitam sesuai Permenkes No. 47/2018.',
+    iconFill: true,
   },
   {
-    icon: <SearchCheck className="h-5 w-5 text-gray-500" />,
+    icon: SearchCheck,
     title: 'Transparansi Reasoning',
-    desc: 'Setiap langkah agent tercatat di Reasoning Trace — tidak ada keputusan tersembunyi.',
+    desc: 'Setiap langkah agent tercatat di Case Timeline — tidak ada keputusan tersembunyi.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Pediatric Safety Lens',
+    desc: 'Estimasi skor ESI untuk pasien anak dengan ambang vital spesifik per kelompok usia.',
+  },
+  {
+    icon: Activity,
+    title: 'Realtime Dashboard',
+    desc: 'Supabase Realtime: kasus baru atau perubahan status muncul otomatis tanpa refresh halaman.',
+  },
+  {
+    icon: Zap,
+    title: 'Hard Override Kritis',
+    desc: 'SpO2 <90%, sistol <90 mmHg, GCS <9, HR ekstrem → sistem paksa ESI-1 tanpa pertanyaan.',
   },
 ];
 
+const FLOW_STEPS = [
+  { num: '1', label: 'Input Pasien', sub: 'Perawat input', icon: Siren, active: false },
+  { num: '2', label: 'RAG Context', sub: 'Retrieve Referensi', icon: SearchCheck, active: false },
+  { num: 'P', label: 'Paralel', sub: 'ESI + Cek Obat', icon: Zap, active: true, isParallel: true },
+  { num: '4', label: 'SOAP Draft', sub: 'Generate AI', icon: ClipboardList, active: false },
+  { num: '✓', label: 'Verifikasi', sub: 'Dokter Jaga', icon: Stethoscope, active: false, isFinal: true },
+];
+
+/* ── Component ───────────────────────────────────────────────────────────────── */
+
 export default function HomePage() {
   return (
-    <div className="relative overflow-hidden bg-white">
-      {/* Background radial gradient for depth */}
-      <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#C0392B] opacity-10 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }}></div>
+    <div style={{ background: 'var(--bg-page)' }} className="relative overflow-hidden">
+
+      {/* ── Ambient background orbs ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute -top-48 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #c0392b 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute top-96 right-0 w-80 h-80 rounded-full opacity-10 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute bottom-48 left-0 w-64 h-64 rounded-full opacity-10 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #047857 0%, transparent 70%)' }}
+        />
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 py-16 sm:py-24">
-        {/* Hero */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full bg-red-50 border border-red-200 px-4 py-1.5 text-xs font-medium text-red-700 mb-8 shadow-sm">
+      <div className="mx-auto max-w-5xl px-4 py-16 sm:py-24 relative">
+
+        {/* ── Hero ────────────────────────────────────────────────────────────── */}
+        <div className="text-center mb-16 animate-float-up">
+
+          {/* Competition badge */}
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-8 shadow-sm"
+            style={{
+              background: 'var(--brand-red-bg)',
+              border: '1px solid var(--brand-red-muted)',
+              color: 'var(--brand-red)',
+            }}
+          >
             <Trophy className="w-4 h-4 text-amber-500" />
             BISA AI — National AI Agent Challenge 2026 · Kategori Healthcare
           </div>
-          <h1 className="text-5xl font-extrabold text-[#1F2933] mb-6 tracking-tight">
-            MedAgent<span className="text-[#C0392B]">-Alpha</span>
+
+          {/* Main heading */}
+          <h1
+            className="text-5xl sm:text-6xl font-black tracking-tight mb-6"
+            style={{ color: 'var(--fg-primary)' }}
+          >
+            Med<span className="gradient-text">Agent</span>
+            <span className="gradient-text">-Alpha</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            AI Agent otonom untuk pra-triase pasien IGD. Mendukung keputusan dokter lebih cepat —
-            bukan menggantikannya.
+
+          <p
+            className="text-xl max-w-2xl mx-auto mb-4 leading-relaxed"
+            style={{ color: 'var(--fg-secondary)' }}
+          >
+            AI Agent otonom untuk pra-triase pasien IGD.{' '}
+            <span style={{ color: 'var(--fg-primary)' }} className="font-semibold">
+              Mendukung keputusan dokter lebih cepat
+            </span>{' '}
+            — bukan menggantikannya.
           </p>
-          <div className="flex justify-center gap-4 flex-wrap">
+
+          {/* Stats strip */}
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mb-10">
+            {STATS.map(({ value, label }) => (
+              <div key={label} className="flex flex-col items-center">
+                <span className="text-2xl font-black" style={{ color: 'var(--brand-red)' }}>
+                  {value}
+                </span>
+                <span className="text-xs font-medium" style={{ color: 'var(--fg-muted)' }}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA buttons */}
+          <div className="flex justify-center gap-3 flex-wrap">
             <Link
               href="/dashboard"
-              className="rounded-lg bg-[#1F2933] px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800 transition-colors shadow-sm"
+              id="hero-dashboard-btn"
+              className="rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
+                color: 'var(--fg-primary)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
             >
               Lihat Dashboard
             </Link>
             <Link
               href="/input"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#C0392B] px-6 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors shadow-sm"
+              id="hero-pasien-baru-btn"
+              className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
+                boxShadow: '0 4px 14px rgba(192,57,43,0.35)',
+              }}
             >
               <Siren className="w-5 h-5" />
               Daftarkan Pasien
@@ -91,86 +195,236 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Alur sistem diagram */}
+        {/* ── Flow Diagram ─────────────────────────────────────────────────────── */}
         <div className="mb-20">
-          <h2 className="text-center text-sm font-bold uppercase tracking-widest text-gray-400 mb-8">
-            Alur Sistem Berbasis Multi-Agent
+          <h2
+            className="text-center text-xs font-bold uppercase tracking-widest mb-8"
+            style={{ color: 'var(--fg-muted)' }}
+          >
+            Alur Sistem Multi-Agent
           </h2>
-          
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-sm font-medium">
-            {/* Step 1 & 2 */}
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 font-bold border border-gray-200 shadow-sm z-10">1</div>
-                <span className="mt-2 text-xs text-gray-600">Input Pasien</span>
-              </div>
-              <div className="h-0.5 w-8 bg-gray-300"></div>
-              <div className="flex flex-col items-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 font-bold border border-gray-200 shadow-sm z-10">2</div>
-                <span className="mt-2 text-xs text-gray-600">Retrieve Context</span>
-              </div>
-              <div className="h-0.5 w-8 bg-gray-300 hidden md:block"></div>
-            </div>
 
-            {/* Parallel Steps 3 */}
-            <div className="relative flex flex-col items-center rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 w-full md:w-auto mt-4 md:mt-0">
-              <span className="absolute -top-3 bg-gray-50 px-2 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Parallel Execution</span>
-              <div className="flex gap-6 mt-2">
-                <div className="flex flex-col items-center text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 border border-red-200 shadow-sm"><BrainCircuit className="w-5 h-5"/></div>
-                  <span className="mt-2 text-xs text-gray-600 w-24">Urgency Scoring<br/>(ESI)</span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-200 shadow-sm"><Pill className="w-5 h-5"/></div>
-                  <span className="mt-2 text-xs text-gray-600 w-24">Cek Interaksi Obat</span>
-                </div>
-              </div>
-            </div>
+          <div
+            className="rounded-2xl p-6 sm:p-8"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-default)',
+              boxShadow: 'var(--shadow-md)',
+            }}
+          >
+            <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-2">
 
-            {/* Step 4 & 5 */}
-            <div className="flex items-center gap-4 mt-4 md:mt-0">
-              <div className="h-0.5 w-8 bg-gray-300 hidden md:block"></div>
-              <div className="flex flex-col items-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 font-bold border border-gray-200 shadow-sm z-10">4</div>
-                <span className="mt-2 text-xs text-gray-600">Generate SOAP</span>
+              {/* Steps 1 & 2 */}
+              {FLOW_STEPS.filter(s => !s.isParallel && !s.isFinal).slice(0, 2).map((step, i) => (
+                <div key={step.num} className="flex items-center gap-2 md:gap-3">
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-xl font-bold text-sm shadow-sm transition-all hover:scale-105"
+                      style={{
+                        background: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-default)',
+                        color: 'var(--fg-primary)',
+                      }}
+                    >
+                      {step.num}
+                    </div>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--fg-secondary)' }}>{step.label}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>{step.sub}</span>
+                  </div>
+                  {/* Connector */}
+                  <div
+                    className="hidden md:block h-px w-8"
+                    style={{ background: `linear-gradient(90deg, var(--border-default), transparent)` }}
+                  />
+                </div>
+              ))}
+
+              {/* Parallel box */}
+              <div className="relative md:mx-2">
+                <div
+                  className="rounded-2xl p-4 text-center"
+                  style={{
+                    background: 'var(--brand-red-bg)',
+                    border: '1.5px dashed var(--brand-red)',
+                  }}
+                >
+                  <div
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full"
+                    style={{
+                      background: 'var(--brand-red)',
+                      color: '#fff',
+                    }}
+                  >
+                    Paralel ⚡
+                  </div>
+                  <div className="flex gap-5 mt-1">
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
+                        style={{ background: 'var(--brand-red-bg)', border: '1px solid var(--brand-red)' }}
+                      >
+                        <BrainCircuit className="w-5 h-5" style={{ color: 'var(--brand-red)' }} />
+                      </div>
+                      <span className="text-[10px] font-bold w-20 text-center" style={{ color: 'var(--brand-red)' }}>
+                        Urgency Scoring (ESI)
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
+                        style={{ background: '#f5f3ff', border: '1px solid #7c3aed' }}
+                      >
+                        <Pill className="w-5 h-5 text-violet-600" />
+                      </div>
+                      <span className="text-[10px] font-bold w-20 text-center text-violet-600">
+                        Cek Interaksi Obat
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="h-0.5 w-8 bg-gray-300"></div>
-              <div className="flex flex-col items-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1F2933] text-white font-bold shadow-sm z-10"><Stethoscope className="w-5 h-5"/></div>
-                <span className="mt-2 text-xs font-semibold text-[#1F2933]">Verifikasi Dokter</span>
-              </div>
+
+              {/* Steps 4 & final */}
+              {FLOW_STEPS.filter(s => !s.isParallel && !s.isFinal).slice(2).concat(FLOW_STEPS.filter(s => s.isFinal)).map((step) => (
+                <div key={step.num} className="flex items-center gap-2 md:gap-3">
+                  <div
+                    className="hidden md:block h-px w-8"
+                    style={{ background: `linear-gradient(90deg, transparent, var(--border-default))` }}
+                  />
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-xl font-bold text-sm shadow-sm transition-all hover:scale-105 ${step.isFinal ? 'text-white' : ''}`}
+                      style={step.isFinal ? {
+                        background: 'linear-gradient(135deg, #1f2933 0%, #374151 100%)',
+                        border: '1px solid #374151',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                      } : {
+                        background: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-default)',
+                        color: 'var(--fg-primary)',
+                      }}
+                    >
+                      {step.isFinal ? <Stethoscope className="w-5 h-5" /> : step.num}
+                    </div>
+                    <span className="text-xs font-semibold" style={{ color: step.isFinal ? 'var(--fg-primary)' : 'var(--fg-secondary)' }}>
+                      {step.label}
+                    </span>
+                    <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>{step.sub}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Features - Main */}
-        <div className="grid gap-6 sm:grid-cols-3 mb-6">
-          {MAIN_FEATURES.map(({ icon, title, desc }) => (
-            <div key={title} className="rounded-xl bg-white border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="mb-4 inline-flex items-center justify-center rounded-lg bg-red-50 p-3">
-                {icon}
+        {/* ── Main Feature Cards ────────────────────────────────────────────────── */}
+        <div className="grid gap-5 sm:grid-cols-3 mb-5">
+          {MAIN_FEATURES.map(({ icon: Icon, color, bg, title, desc, badge }) => (
+            <div
+              key={title}
+              className="rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 group"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
+              }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div
+                  className="inline-flex items-center justify-center rounded-xl p-3 transition-transform duration-200 group-hover:scale-110"
+                  style={{ background: bg }}
+                >
+                  <Icon className="h-6 w-6" style={{ color }} />
+                </div>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  style={{ background: bg, color }}
+                >
+                  {badge}
+                </span>
               </div>
-              <h3 className="font-bold text-lg text-[#1F2933] mb-2">{title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{desc}</p>
+              <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--fg-primary)' }}>{title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--fg-secondary)' }}>{desc}</p>
             </div>
           ))}
         </div>
 
-        {/* Features - Secondary */}
-        <div className="grid gap-4 sm:grid-cols-3 mb-16">
-          {SECONDARY_FEATURES.map(({ icon, title, desc }) => (
-            <div key={title} className="flex gap-4 rounded-xl bg-gray-50/50 border border-[#F4F5F7] p-5">
-              <div className="shrink-0 mt-1">{icon}</div>
+        {/* ── Secondary Feature Grid ────────────────────────────────────────────── */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-16">
+          {SECONDARY_FEATURES.map(({ icon: Icon, title, desc, iconFill }) => (
+            <div
+              key={title}
+              className="flex gap-4 rounded-xl p-4"
+              style={{
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div className="shrink-0 mt-0.5">
+                <Icon
+                  className="w-5 h-5"
+                  style={{ color: 'var(--fg-muted)' }}
+                  fill={iconFill ? 'currentColor' : 'none'}
+                />
+              </div>
               <div>
-                <h4 className="font-semibold text-sm text-[#1F2933] mb-1">{title}</h4>
-                <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+                <h4 className="font-semibold text-sm mb-1" style={{ color: 'var(--fg-primary)' }}>{title}</h4>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--fg-muted)' }}>{desc}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Disclaimer */}
-        <div className="flex gap-4 rounded-xl border-y border-r border-l-4 border-l-amber-500 border-y-amber-200 border-r-amber-200 bg-amber-50 p-6 shadow-sm">
+        {/* ── CTA Strip ────────────────────────────────────────────────────────── */}
+        <div
+          className="rounded-2xl p-8 text-center mb-12"
+          style={{
+            background: 'linear-gradient(135deg, var(--brand-red-bg) 0%, var(--bg-card) 100%)',
+            border: '1px solid var(--brand-red-muted)',
+            boxShadow: 'var(--shadow-glow-red)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Clock className="w-5 h-5" style={{ color: 'var(--brand-red)' }} />
+            <span className="font-bold text-lg" style={{ color: 'var(--fg-primary)' }}>
+              Mulai analisis dalam hitungan detik
+            </span>
+          </div>
+          <p className="text-sm mb-6" style={{ color: 'var(--fg-secondary)' }}>
+            Daftarkan pasien → agen bekerja otomatis → dokter tinggal verifikasi
+          </p>
+          <Link
+            href="/input"
+            id="cta-daftar-btn"
+            className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
+              boxShadow: '0 6px 20px rgba(192,57,43,0.4)',
+            }}
+          >
+            <Siren className="w-5 h-5" />
+            Daftarkan Pasien Sekarang
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* ── Disclaimer ────────────────────────────────────────────────────────── */}
+        <div
+          className="flex gap-4 rounded-xl p-6 shadow-sm"
+          style={{
+            background: '#fffbeb',
+            borderTop: '1px solid #fde68a',
+            borderBottom: '1px solid #fde68a',
+            borderRight: '1px solid #fde68a',
+            borderLeft: '4px solid #f59e0b',
+          }}
+        >
           <TriangleAlert className="h-6 w-6 text-amber-600 shrink-0" />
           <div className="text-sm text-amber-900">
             <p className="font-bold mb-1">Disclaimer Klinis</p>
@@ -181,6 +435,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );

@@ -77,6 +77,37 @@ async function nodeUrgencyScoring(
 }> {
   await logTrace(caseRow.id, 'urgency_scoring', 'started');
 
+  // ── FAST-PATH (SHORT-CIRCUIT) ──
+  // Sanitize vital signs: remove 0-values that mean "not entered" (form default).
+  // This prevents false-positive ESI-1 triggers from empty numeric form fields.
+  const sanitizeVitals = (v: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(Object.entries(v).filter(([, val]) => val !== 0 && val !== undefined && val !== null));
+
+  const sanitizedVitals = sanitizeVitals(caseRow.vital_signs as Record<string, unknown>);
+
+  // Pre-evaluate based on sanitized vital signs. If clearly critical (ESI-1), skip LLM extraction.
+  const preCheckResult = evaluateTriage(caseRow.age_months, sanitizedVitals);
+  if (preCheckResult.esi_score === 1 || preCheckResult.override_triggered) {
+    await logTrace(caseRow.id, 'urgency_scoring', 'completed', {
+      fast_path: true,
+      reasoning: preCheckResult.reasoning,
+      sanitized_vitals: sanitizedVitals,
+    });
+
+    return {
+      triageData: {
+        age_category: preCheckResult.age_category,
+        auto_scoring_eligible: preCheckResult.auto_scoring_eligible,
+        esi_score: preCheckResult.esi_score,
+        triage_warna: preCheckResult.triage_warna,
+        override_triggered: preCheckResult.override_triggered,
+        confidence_level: preCheckResult.confidence,
+        triage_flags: preCheckResult.flags,
+        patient_features: sanitizedVitals,
+      }
+    };
+  }
+
   // Step a: LLM structured extraction (features come from vitals + keluhan)
   const { features, extraction_successful } = await extractPatientFeatures(
     caseRow.keluhan_utama,

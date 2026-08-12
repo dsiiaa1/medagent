@@ -71,6 +71,7 @@ export interface DrugInteraction {
   drug_b: string;
   severity: 'ringan' | 'sedang' | 'berat';
   description: string;
+  source?: string;
 }
 
 export interface SoapSummary {
@@ -78,6 +79,8 @@ export interface SoapSummary {
   objective: string;
   assessment: string;
   plan: string;
+  /** One-line clinical summary for the doctor — synthesized from assessment + RAG + triage */
+  conclusion?: string;
 }
 
 export interface CaseRow {

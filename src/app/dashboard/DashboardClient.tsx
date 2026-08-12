@@ -3,13 +3,17 @@
 /**
  * DashboardClient — subscribes to Supabase Realtime for live updates.
  * Receives initialCases from the Server Component for instant first paint.
+ * Upgraded: themed stats cards, premium live badge, colored filter pills.
  */
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PatientCard } from '@/components/PatientCard';
 import type { CaseRow, TriageWarna, VerificationStatus, VitalSigns } from '@/lib/supabase';
-import { FolderOpen, Filter, ArrowRight } from 'lucide-react';
+import {
+  FolderOpen, Filter, ArrowRight, Users, AlertOctagon,
+  AlertTriangle, CheckCircle, ClockAlert, Wifi, WifiOff
+} from 'lucide-react';
 import Link from 'next/link';
 
 type DashboardCase = Pick<
@@ -26,7 +30,6 @@ interface Props {
 
 function sortCases(cases: DashboardCase[]): DashboardCase[] {
   return [...cases].sort((a, b) => {
-    // ESI 1 first, nulls last, then by arrival time
     const esiA = a.esi_score ?? 99;
     const esiB = b.esi_score ?? 99;
     if (esiA !== esiB) return esiA - esiB;
@@ -35,17 +38,18 @@ function sortCases(cases: DashboardCase[]): DashboardCase[] {
 }
 
 const FILTER_OPTIONS = [
-  { value: 'all',     label: 'Semua'              },
-  { value: 'pending', label: 'Belum diverifikasi' },
-  { value: 'Merah',   label: 'Merah'           },
-  { value: 'Kuning',  label: 'Kuning'          },
-  { value: 'Hijau',   label: 'Hijau'           },
+  { value: 'all',     label: 'Semua',             activeStyle: { background: 'var(--fg-primary)', color: 'var(--fg-inverted)' } },
+  { value: 'pending', label: 'Belum Diverifikasi', activeStyle: { background: '#f59e0b', color: '#fff' } },
+  { value: 'Merah',   label: 'Merah',              activeStyle: { background: '#dc2626', color: '#fff' } },
+  { value: 'Kuning',  label: 'Kuning',             activeStyle: { background: '#d97706', color: '#fff' } },
+  { value: 'Hijau',   label: 'Hijau',              activeStyle: { background: '#059669', color: '#fff' } },
 ] as const;
 
 export function DashboardClient({ initialCases }: Props) {
   const [cases, setCases] = useState<DashboardCase[]>(() => sortCases(initialCases));
   const [filter, setFilter] = useState<string>('all');
   const [liveIndicator, setLiveIndicator] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
 
   // Realtime subscription
   useEffect(() => {
@@ -56,7 +60,8 @@ export function DashboardClient({ initialCases }: Props) {
         { event: '*', schema: 'public', table: 'cases' },
         (payload) => {
           setLiveIndicator(true);
-          setTimeout(() => setLiveIndicator(false), 2000);
+          setIsConnected(true);
+          setTimeout(() => setLiveIndicator(false), 2500);
 
           if (payload.eventType === 'INSERT') {
             setCases((prev) => sortCases([...prev, payload.new as DashboardCase]));
@@ -75,7 +80,9 @@ export function DashboardClient({ initialCases }: Props) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -95,69 +102,154 @@ export function DashboardClient({ initialCases }: Props) {
     pending: cases.filter((c) => c.verification_status === 'pending').length,
   };
 
+  const statCards = [
+    {
+      label: 'Total Pasien',
+      value: stats.total,
+      icon: Users,
+      iconColor: 'var(--fg-secondary)',
+      bgStyle: { background: 'var(--bg-card)', border: '1px solid var(--border-default)' },
+      valueStyle: { color: 'var(--fg-primary)' },
+    },
+    {
+      label: 'Kritis (Merah)',
+      value: stats.merah,
+      icon: AlertOctagon,
+      iconColor: 'var(--triage-merah-text)',
+      bgStyle: { background: 'var(--triage-merah-bg)', border: '1px solid var(--brand-red-muted)' },
+      valueStyle: { color: 'var(--triage-merah-text)' },
+    },
+    {
+      label: 'Urgent (Kuning)',
+      value: stats.kuning,
+      icon: AlertTriangle,
+      iconColor: 'var(--triage-kuning-text)',
+      bgStyle: { background: 'var(--triage-kuning-bg)', border: '1px solid #fde68a' },
+      valueStyle: { color: 'var(--triage-kuning-text)' },
+    },
+    {
+      label: 'Stabil (Hijau)',
+      value: stats.hijau,
+      icon: CheckCircle,
+      iconColor: 'var(--triage-hijau-text)',
+      bgStyle: { background: 'var(--triage-hijau-bg)', border: '1px solid #a7f3d0' },
+      valueStyle: { color: 'var(--triage-hijau-text)' },
+    },
+    {
+      label: 'Pending Review',
+      value: stats.pending,
+      icon: ClockAlert,
+      iconColor: '#d97706',
+      bgStyle: { background: '#fffbeb', border: '1px solid #fde68a' },
+      valueStyle: { color: '#b45309' },
+    },
+  ];
+
   return (
     <div>
       {/* Stats bar */}
-      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
-        {[
-          { label: 'Total',       value: stats.total,   cls: 'border-gray-200 bg-white'  },
-          { label: 'Merah (Kritis)',    value: stats.merah,   cls: 'border-red-200 bg-red-50 text-red-900' },
-          { label: 'Kuning (Urgent)',   value: stats.kuning,  cls: 'border-amber-200 bg-amber-50 text-amber-900' },
-          { label: 'Hijau (Stabil)',    value: stats.hijau,   cls: 'border-emerald-200 bg-emerald-50 text-emerald-900' },
-          { label: 'Belum Diverifikasi',  value: stats.pending, cls: 'border-orange-200 bg-orange-50 text-orange-900' },
-        ].map(({ label, value, cls }) => (
-          <div key={label} className={`rounded-2xl border px-4 py-4 text-center shadow-sm ${cls}`}>
-            <p className="text-3xl font-black mb-1">{value}</p>
-            <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">{label}</p>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {statCards.map(({ label, value, icon: Icon, iconColor, bgStyle, valueStyle }) => (
+          <div
+            key={label}
+            className="rounded-2xl px-4 py-4 flex flex-col items-center text-center gap-1 transition-all hover:-translate-y-0.5"
+            style={{ ...bgStyle, boxShadow: 'var(--shadow-sm)' }}
+          >
+            <Icon className="w-5 h-5 mb-1 opacity-80" style={{ color: iconColor }} />
+            <p className="text-3xl font-black leading-none" style={valueStyle}>{value}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider opacity-70" style={valueStyle}>{label}</p>
           </div>
         ))}
       </div>
 
       {/* Filter + live indicator */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-          <Filter className="w-4 h-4 text-gray-400 shrink-0 mr-1" />
-          {FILTER_OPTIONS.map(({ value, label }) => (
+      <div
+        className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4"
+        style={{ borderBottom: '1px solid var(--border-default)' }}
+      >
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+          <Filter className="w-4 h-4 shrink-0 mr-1" style={{ color: 'var(--fg-muted)' }} />
+          {FILTER_OPTIONS.map(({ value, label, activeStyle }) => (
             <button
               key={value}
+              id={`filter-${value}`}
               onClick={() => setFilter(value)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
+              className="rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all duration-200 hover:scale-[1.03]"
+              style={
                 filter === value
-                  ? 'bg-gray-900 text-white shadow-sm'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
+                  ? { ...activeStyle, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }
+                  : {
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-default)',
+                      color: 'var(--fg-secondary)',
+                    }
+              }
             >
               {label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full shrink-0">
+
+        {/* Live indicator */}
+        <div
+          className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0"
+          style={{
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-default)',
+            color: isConnected ? 'var(--triage-hijau-text)' : 'var(--fg-muted)',
+          }}
+        >
+          {isConnected ? (
+            <Wifi className="w-3.5 h-3.5" />
+          ) : (
+            <WifiOff className="w-3.5 h-3.5" style={{ color: 'var(--fg-muted)' }} />
+          )}
           <span
-            className={`h-2.5 w-2.5 rounded-full transition-colors ${
-              liveIndicator ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-300'
-            }`}
+            className={`h-2 w-2 rounded-full transition-all duration-300 ${liveIndicator ? 'scale-125' : ''}`}
+            style={{
+              background: liveIndicator
+                ? '#22c55e'
+                : isConnected
+                ? '#22c55e'
+                : 'var(--fg-muted)',
+              boxShadow: liveIndicator ? '0 0 8px rgba(34,197,94,0.7)' : 'none',
+            }}
           />
-          {liveIndicator ? 'Sinkronisasi...' : 'Koneksi Stabil'}
+          {liveIndicator ? 'Sinkronisasi...' : isConnected ? 'LIVE' : 'Terputus'}
         </div>
       </div>
 
       {/* Case list */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-300 bg-gray-50 py-24 px-4 text-center">
-          <div className="bg-white p-4 rounded-full shadow-sm mb-4 border border-gray-100">
-             <FolderOpen className="w-10 h-10 text-gray-300" />
+        <div
+          className="flex flex-col items-center justify-center rounded-3xl border border-dashed py-24 px-4 text-center"
+          style={{ borderColor: 'var(--border-strong)', background: 'var(--bg-subtle)' }}
+        >
+          <div
+            className="p-4 rounded-full mb-4"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+          >
+            <FolderOpen className="w-10 h-10" style={{ color: 'var(--fg-muted)' }} />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-1">
+          <h3 className="text-lg font-bold mb-1" style={{ color: 'var(--fg-primary)' }}>
             {cases.length === 0 ? 'Belum Ada Pasien' : 'Tidak Ditemukan'}
           </h3>
-          <p className="text-gray-500 text-sm max-w-sm mb-6">
-            {cases.length === 0 
-              ? 'Antrean kosong. Silakan daftarkan pasien baru untuk memulai analisis RAG triase.' 
+          <p className="text-sm max-w-sm mb-6" style={{ color: 'var(--fg-muted)' }}>
+            {cases.length === 0
+              ? 'Antrean kosong. Silakan daftarkan pasien baru untuk memulai analisis RAG triase.'
               : 'Tidak ada pasien yang cocok dengan filter saat ini.'}
           </p>
           {cases.length === 0 && (
-            <Link href="/input" className="inline-flex items-center gap-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors">
-              Daftarkan Pasien Pertama <ArrowRight className="w-4 h-4"/>
+            <Link
+              href="/input"
+              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+              style={{
+                color: 'var(--brand-red)',
+                background: 'var(--brand-red-bg)',
+                border: '1px solid var(--brand-red-muted)',
+              }}
+            >
+              Daftarkan Pasien Pertama <ArrowRight className="w-4 h-4" />
             </Link>
           )}
         </div>

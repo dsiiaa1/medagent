@@ -68,11 +68,21 @@ function buildTemplateSOAP(
       ? `Kondisi berisiko tinggi. Pasien tidak boleh menunggu terlalu lama.`
       : `Kondisi relatif stabil, memerlukan asesmen dan tata laksana sesuai keluhan.`;
 
+  const conclusionBase =
+    triageResult.esi_score === 1
+      ? `⚠️ KESIMPULAN: Kondisi KRITIS mengancam jiwa — butuh intervensi segera. Panggil dokter penanggung jawab sekarang.`
+      : triageResult.esi_score === 2
+      ? `⚠️ KESIMPULAN: Kondisi BERISIKO TINGGI — pasien tidak boleh menunggu. Prioritaskan pemeriksaan dokter dalam 10 menit.`
+      : triageResult.esi_score === 3
+      ? `ℹ️ KESIMPULAN: Kondisi relatif stabil (ESI 3/Kuning). Pemeriksaan dokter direkomendasikan dalam 30 menit. Monitor tanda vital berkala.`
+      : `ℹ️ KESIMPULAN: Kondisi stabil. Pasien dapat menunggu di area triase hijau dan diperiksa sesuai antrean.`;
+
   return {
     subjective: `Pasien datang dengan keluhan: ${namaKeluhan}.\nRiwayat penyakit: ${kondisiText}.\nAlergi: ${alergiText}.\nObat yang sedang dikonsumsi: ${obatText}.`,
     objective: `Tanda vital: ${vitalsText || 'data tidak lengkap'}.\nKategori usia: ${triageResult.age_category}.\nSkor triase: ${esiText}.${triageResult.flags.includes('gejala_atipikal') ? '\n⚠️ Catatan: Pasien lansia — waspadai presentasi gejala tidak khas.' : ''}`,
     assessment: `${assessmentBase}${interaksiText}`,
     plan: buildPlanText(triageResult, drugInteractions),
+    conclusion: conclusionBase,
   };
 }
 
@@ -186,12 +196,14 @@ REFERENSI MEDIS RELEVAN:
 ${refText}
 
 Buatkan SOAP note SINGKAT dalam Bahasa Indonesia. Sertakan disclaimer bahwa ini adalah DECISION SUPPORT, bukan pengganti penilaian dokter.
+Tambahkan juga field "conclusion": satu kalimat ringkas (max 60 kata) yang langsung dapat digunakan dokter sebagai arahan awal — sebutkan dugaan diagnosis utama, tingkat urgensi, dan tindakan paling mendesak.
 Balas HANYA dalam format JSON:
 {
   "subjective": "...",
   "objective": "...",
   "assessment": "...",
-  "plan": "..."
+  "plan": "...",
+  "conclusion": "..."
 }`;
 
   try {

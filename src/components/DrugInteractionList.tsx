@@ -64,6 +64,12 @@ export function DrugInteractionList({ interactions, checkedDrugs = [] }: Props) 
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">{item.description}</p>
+                {item.source && (
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5 pt-2 border-t border-gray-100">
+                    <Info className="w-3.5 h-3.5" />
+                    Sumber: <span className="font-medium italic">{item.source}</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>

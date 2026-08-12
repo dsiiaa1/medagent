@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Navbar } from '@/components/Navbar';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
 const geistSans = Geist({
@@ -27,15 +28,23 @@ export default function RootLayout({
     <html
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-gray-50 antialiased">
-        <Navbar />
-        <main className="flex-1">
-          {children}
-        </main>
-        <footer className="border-t border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
-          MedAgent-Alpha v0.1.0-alpha · BISA AI NAIC 2026 · Data sintetis — bukan untuk penggunaan klinis nyata
-        </footer>
+      <head>
+      </head>
+      <body className="min-h-full flex flex-col antialiased" style={{ background: 'var(--bg-page)', color: 'var(--fg-primary)' }}>
+        <ThemeProvider>
+          <Navbar />
+          <main className="flex-1">
+            {children}
+          </main>
+          <footer
+            className="border-t py-4 text-center text-xs"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--fg-muted)', background: 'var(--bg-card)' }}
+          >
+            MedAgent-Alpha v0.1.0-alpha · BISA AI NAIC 2026 · Data sintetis — bukan untuk penggunaan klinis nyata
+          </footer>
+        </ThemeProvider>
       </body>
     </html>
   );

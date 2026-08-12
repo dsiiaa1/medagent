@@ -7,10 +7,8 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { after } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { runOrchestrator } from '@/lib/orchestrator';
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -71,14 +69,23 @@ export async function submitIntake(
   const ageMonths = toAgeMonths(d.age_value, d.age_unit);
 
   // Build nested objects
+  // IMPORTANT: We treat value=0 as "not entered" for critical vital signs (SpO2, HR, Systolic)
+  // to prevent false-positive ESI-1 triggers (e.g. form default of 0 != patient SpO2 of 0%).
+  // Temperature and GCS can legitimately be non-zero near-zero, so we handle them separately.
+  const isValidVital = (v: number | string | undefined, allowZero = false): boolean => {
+    if (v === '' || v === undefined) return false;
+    const n = Number(v);
+    return allowZero ? !isNaN(n) : !isNaN(n) && n > 0;
+  };
+
   const vitalSigns = {
-    ...(d.spo2 !== '' && d.spo2 !== undefined            ? { spo2: Number(d.spo2) }                         : {}),
-    ...(d.systolic !== '' && d.systolic !== undefined     ? { systolic: Number(d.systolic) }                 : {}),
-    ...(d.diastolic !== '' && d.diastolic !== undefined   ? { diastolic: Number(d.diastolic) }               : {}),
-    ...(d.heart_rate !== '' && d.heart_rate !== undefined ? { heart_rate: Number(d.heart_rate) }             : {}),
-    ...(d.respiratory_rate !== '' && d.respiratory_rate !== undefined ? { respiratory_rate: Number(d.respiratory_rate) } : {}),
-    ...(d.temperature !== '' && d.temperature !== undefined ? { temperature: Number(d.temperature) }         : {}),
-    ...(d.gcs !== '' && d.gcs !== undefined               ? { gcs: Number(d.gcs) }                          : {}),
+    ...(isValidVital(d.spo2)             ? { spo2:             Number(d.spo2)             } : {}),
+    ...(isValidVital(d.systolic)         ? { systolic:         Number(d.systolic)         } : {}),
+    ...(isValidVital(d.diastolic)        ? { diastolic:        Number(d.diastolic)        } : {}),
+    ...(isValidVital(d.heart_rate)       ? { heart_rate:       Number(d.heart_rate)       } : {}),
+    ...(isValidVital(d.respiratory_rate) ? { respiratory_rate: Number(d.respiratory_rate) } : {}),
+    ...(isValidVital(d.temperature)      ? { temperature:      Number(d.temperature)      } : {}),
+    ...(isValidVital(d.gcs, true)        ? { gcs:              Number(d.gcs)              } : {}),
   };
 
   const riwayatMedis = {
@@ -110,14 +117,15 @@ export async function submitIntake(
     return { message: `Gagal menyimpan data: ${error?.message ?? 'Unknown error'}` };
   }
 
-  // Trigger async orchestrator in the background reliably on Vercel
-  after(async () => {
-    try {
-      await runOrchestrator(newCase.id);
-    } catch (e) {
-      console.error('[Action] Failed to run orchestrator:', e);
-    }
-  });
+  // Trigger orchestrator via API endpoint (fire-and-forget).
+  // Using fetch() is more reliable than after() across all environments (dev + prod).
+  // We don't await this — redirect happens immediately and the spinner polls for completion.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  fetch(`${baseUrl}/api/process-case`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ caseId: newCase.id }),
+  }).catch((e) => console.error('[Action] Failed to trigger orchestrator:', e));
 
   // Redirect to case detail — shows processing spinner while AI orchestrator runs
   redirect(`/case/${newCase.id}`);

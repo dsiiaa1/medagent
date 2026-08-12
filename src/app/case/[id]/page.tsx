@@ -12,6 +12,8 @@ import { SOAPView } from '@/components/SOAPView';
 import { DrugInteractionList } from '@/components/DrugInteractionList';
 import { ReasoningTrace } from '@/components/ReasoningTrace';
 import { VerificationPanel } from './VerificationPanel';
+import { ProcessingPoller } from '@/components/ProcessingPoller';
+import { ClinicalConclusion } from '@/components/ClinicalConclusion';
 import type {
   CaseRow, CaseTraceRow, SoapSummary, DrugInteraction,
   RagReference, TriageWarna, VerificationStatus, VitalSigns,
@@ -172,10 +174,13 @@ export default async function CaseDetailPage({ params }: Props) {
           </div>
         )}
         {isProcessing && (
-          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm font-semibold text-blue-900 shadow-sm">
-            <span className="h-5 w-5 rounded-full border-2 border-blue-600/30 border-t-blue-600 animate-spin" />
-            Agent AI sedang memproses dan menganalisis kasus ini...
-          </div>
+          <>
+            <ProcessingPoller isProcessing={isProcessing} intervalMs={3000} />
+            <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm font-semibold text-blue-900 shadow-sm">
+              <span className="h-5 w-5 rounded-full border-2 border-blue-600/30 border-t-blue-600 animate-spin" />
+              Agent AI sedang memproses dan menganalisis kasus ini...
+            </div>
+          </>
         )}
         {c.current_node === 'error' && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-sm">
@@ -246,7 +251,7 @@ export default async function CaseDetailPage({ params }: Props) {
             hasCriticalVital={hasCriticalVital}
             criticalVitals={criticalVitals}
             vitals={vitals}
-            confidenceLevel={c.confidence_level}
+            confidenceLevel={c.confidence_level ?? undefined}
           />
 
           {/* SOAP Summary */}
@@ -272,6 +277,11 @@ export default async function CaseDetailPage({ params }: Props) {
               checkedDrugs={c.riwayat_medis?.obat_dikonsumsi ?? []}
             />
           </SectionCard>
+
+          {/* Clinical Conclusion — shown above RAG so doctor sees summary first */}
+          {soap && (
+            <ClinicalConclusion soap={soap} esiScore={c.esi_score} />
+          )}
 
           {/* RAG References */}
           {ragRefs.length > 0 && (

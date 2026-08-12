@@ -22,6 +22,7 @@ type InteractionEntry = {
   drug_b: string;
   severity: 'ringan' | 'sedang' | 'berat';
   description: string;
+  source?: string;
 };
 
 const INTERACTION_DB: InteractionEntry[] = [
@@ -162,6 +163,78 @@ const INTERACTION_DB: InteractionEntry[] = [
     drug_b: 'aspirin',
     severity: 'sedang',
     description: 'Penggunaan dua NSAID bersamaan meningkatkan risiko perdarahan saluran cerna dan komplikasi ginjal.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  // ── Additional interactions (expanded set) ──────────────────────────────────
+  {
+    drug_a: 'metronidazol',
+    drug_b: 'warfarin',
+    severity: 'berat',
+    description: 'Metronidazol menghambat CYP2C9 sehingga meningkatkan kadar warfarin secara signifikan → risiko perdarahan berat. Monitor INR ketat dan pertimbangkan reduksi dosis warfarin.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  {
+    drug_a: 'fluconazole',
+    drug_b: 'warfarin',
+    severity: 'berat',
+    description: 'Flukonazol (antijamur) menghambat metabolisme warfarin → peningkatan INR drastis → risiko perdarahan serius. Hindari kombinasi atau monitor INR tiap 2 hari.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  {
+    drug_a: 'ticagrelor',
+    drug_b: 'aspirin',
+    severity: 'sedang',
+    description: 'Kombinasi ticagrelor + aspirin dosis tinggi (>100 mg/hari) meningkatkan risiko perdarahan tanpa manfaat klinis tambahan. Aspirin dosis maintenance harus ≤100 mg/hari bila dikombinasikan.',
+    source: 'ESC Guidelines ACS 2020',
+  },
+  {
+    drug_a: 'ramipril',
+    drug_b: 'ibuprofen',
+    severity: 'sedang',
+    description: 'NSAID mengantagonis efek antihipertensi ACE inhibitor dan meningkatkan risiko gagal ginjal akut, terutama pada pasien lansia atau dehidrasi. Gunakan parasetamol sebagai alternatif analgesik.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  {
+    drug_a: 'glibenklamid',
+    drug_b: 'ciprofloxacin',
+    severity: 'sedang',
+    description: 'Fluorokuinolon dapat mempotentsiasi efek hipoglikemik sulfonilurea seperti glibenklamid → risiko hipoglikemia berat. Monitor gula darah lebih sering selama pemberian antibiotik.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  {
+    drug_a: 'lithium',
+    drug_b: 'ibuprofen',
+    severity: 'berat',
+    description: 'NSAID menurunkan ekskresi lithium oleh ginjal → akumulasi lithium → toksisitas (tremor, ataksia, konfusi, aritmia). Hindari kombinasi atau monitor kadar lithium serum ketat.',
+    source: 'Meyler\'s Side Effects of Drugs, 16th Edition',
+  },
+  {
+    drug_a: 'kolkisin',
+    drug_b: 'klaritomisin',
+    severity: 'berat',
+    description: 'Klaritomisin menghambat P-glikoprotein dan CYP3A4, meningkatkan kadar kolkisin drastis → risiko toksisitas kolkisin (miopati, supresi sumsum tulang, gagal multiorgan). Kontraindikasi pada gagal ginjal.',
+    source: 'FDA Drug Safety Communication',
+  },
+  {
+    drug_a: 'statin',
+    drug_b: 'fibrat',
+    severity: 'sedang',
+    description: 'Kombinasi statin dan fibrat (gemfibrozil, fenofibrat) meningkatkan risiko miopati dan rabdomiolisis. Fenofibrat lebih aman daripada gemfibrozil bila harus dikombinasikan. Monitor CK bila ada nyeri otot.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  {
+    drug_a: 'tetrasiklin',
+    drug_b: 'antasida',
+    severity: 'sedang',
+    description: 'Antasida mengandung kalsium, magnesium, atau aluminium yang mengikat tetrasiklin membentuk kelat tidak larut → absorpsi tetrasiklin berkurang drastis. Beri jarak ≥2 jam antara keduanya.',
+    source: 'Pionas BPOM / Formularium Nasional',
+  },
+  {
+    drug_a: 'ACE inhibitor',
+    drug_b: 'kalium klorida',
+    severity: 'sedang',
+    description: 'ACE inhibitor mempertahankan kalium melalui penghambatan aldosteron. Suplementasi kalium tambahan bersamaan dapat menyebabkan hiperkalemia berbahaya, terutama pada pasien gagal ginjal.',
+    source: 'Pionas BPOM / Formularium Nasional',
   },
 ];
 
@@ -327,20 +400,9 @@ export async function checkDrugInteractions(drugs: string[]): Promise<DrugCheckR
   // Step 1: static database (always runs, no API call)
   const staticResults = checkStaticInteractions(drugs);
 
-  // Step 2: LLM augmentation (skipped in DEMO_MODE or if no key)
+  // Step 2: LLM augmentation (DISABLED for latency and accuracy/hallucination reasons)
+  // All checks now run entirely deterministically against the local BPOM/Formularium DB.
   let allInteractions = [...staticResults];
-  if (process.env.DEMO_MODE !== 'true') {
-    const llmAdditional = await checkWithLLM(drugs, staticResults);
-    // Deduplicate
-    for (const item of llmAdditional) {
-      const isDuplicate = allInteractions.some(
-        (e) =>
-          normalizeDrug(e.drug_a) === normalizeDrug(item.drug_a) &&
-          normalizeDrug(e.drug_b) === normalizeDrug(item.drug_b)
-      );
-      if (!isDuplicate) allInteractions.push(item);
-    }
-  }
 
   // Sort by severity: berat → sedang → ringan
   const severityOrder: Record<string, number> = { berat: 0, sedang: 1, ringan: 2 };
