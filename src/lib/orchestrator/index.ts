@@ -12,10 +12,12 @@
 
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { retrieveContext, extractPatientFeatures } from '@/lib/rag/retrieval';
-import { evaluateTriage } from '@/lib/triage/engine';
+import { evaluateTriage, computeConfidence, PatientFeatures } from '@/lib/triage/engine';
 import { checkDrugInteractions } from '@/lib/pharma/drug-interactions';
 import { generateSOAP } from '@/lib/soap/generator';
-import type { CaseRow, OrchestratorNode } from '@/lib/supabase';
+import { generateClarificationQuestions } from '@/lib/agent/clarification';
+import { selfCritiqueSOAP } from '@/lib/agent/critique';
+import type { CaseRow, OrchestratorNode, ClarificationData, CritiqueFeedback } from '@/lib/supabase';
 
 // ── Trace logger ─────────────────────────────────────────────────────────────
 
@@ -36,7 +38,8 @@ async function logTrace(
 
 async function setNode(caseId: string, node: OrchestratorNode) {
   const admin = getSupabaseAdmin();
-  await admin.from('cases').update({ current_node: node }).eq('id', caseId);
+  const { error } = await admin.from('cases').update({ current_node: node }).eq('id', caseId);
+  if (error) throw new Error(`Failed to set node: ${error.message}`);
 }
 
 // ── Node implementations ─────────────────────────────────────────────────────
@@ -153,7 +156,10 @@ async function nodeDrugInteractionCheck(
   await logTrace(caseRow.id, 'drug_interaction_check', 'started');
 
   const obat = caseRow.riwayat_medis?.obat_dikonsumsi ?? [];
-  const result = await checkDrugInteractions(obat);
+  const result = await checkDrugInteractions(obat, {
+    keluhan: caseRow.keluhan_utama,
+    vitals: caseRow.vital_signs
+  });
 
   await logTrace(caseRow.id, 'drug_interaction_check', 'completed', {
     checked_drugs: result.checked_drugs,
@@ -195,81 +201,167 @@ async function nodeGenerateSOAP(
 
 export async function runOrchestrator(caseId: string): Promise<void> {
   const admin = getSupabaseAdmin();
+  let iterations = 0;
+  const MAX_ITERATIONS = 10;
 
-  // Load case
-  const { data: caseRow, error: loadErr } = await admin
-    .from('cases')
-    .select('*')
-    .eq('id', caseId)
-    .single();
+  while (iterations < MAX_ITERATIONS) {
+    iterations++;
 
-  if (loadErr || !caseRow) {
-    console.error('[Orchestrator] Cannot load case:', loadErr?.message);
-    return;
-  }
+    // Load case current state
+    const { data: caseRow, error: loadErr } = await admin
+      .from('cases')
+      .select('*')
+      .eq('id', caseId)
+      .single();
 
-  const typedCase = caseRow as CaseRow;
+    if (loadErr || !caseRow) {
+      console.error('[Orchestrator] Cannot load case:', loadErr?.message);
+      return;
+    }
 
-  try {
-    // ── Node 1: retrieve_context ─────────────────────────────────────────
-    await setNode(caseId, 'retrieve_context');
-    const { ragRefs } = await nodeRetrieveContext(typedCase);
+    const typedCase = caseRow as CaseRow;
+    const currentNode = typedCase.current_node;
 
-    // ── Nodes 2 & 3 (parallel): urgency_scoring + drug_interaction_check ─
-    await setNode(caseId, 'urgency_scoring');
+    try {
+      if (currentNode === 'intake' || currentNode === 'retrieve_context') {
+        // Node 1: retrieve_context
+        await setNode(caseId, 'retrieve_context');
+        const { ragRefs } = await nodeRetrieveContext(typedCase);
+        const { error: updErr } = await admin.from('cases').update({ rag_references: ragRefs, current_node: 'urgency_scoring' }).eq('id', caseId);
+        if (updErr) throw new Error(`DB Update Error (retrieve_context): ${updErr.message}`);
+      } 
+      else if (currentNode === 'urgency_scoring') {
+        // Node 2 & 3: urgency_scoring & drug_interaction_check
+        const [scoringResult, drugResult] = await Promise.all([
+          nodeUrgencyScoring(typedCase, typedCase.rag_references ?? []),
+          nodeDrugInteractionCheck(typedCase),
+        ]);
 
-    const [scoringResult, drugResult] = await Promise.all([
-      nodeUrgencyScoring(typedCase, ragRefs),
-      nodeDrugInteractionCheck(typedCase),
-    ]);
+        const updateData: any = {
+          ...scoringResult.triageData,
+          drug_interactions: drugResult.drugInteractions,
+        };
 
-    // Persist intermediate results
-    await admin.from('cases').update({
-      ...scoringResult.triageData,
-      rag_references: ragRefs,
-      drug_interactions: drugResult.drugInteractions,
-      current_node: 'generate_soap',
-    }).eq('id', caseId);
+        // Clarification Loop Check
+        if (scoringResult.triageData.confidence_level === 'low') {
+          // Find missing fields
+          const features = scoringResult.triageData.patient_features as PatientFeatures;
+          const { missingFields } = computeConfidence(features || {});
+          
+          if (missingFields.length > 0) {
+            await logTrace(caseId, 'clarify_with_nurse', 'started', { missingFields });
+            const questions = await generateClarificationQuestions(typedCase.keluhan_utama, missingFields);
+            const clarificationData: ClarificationData = { questions, resolved: false };
+            
+            updateData.current_node = 'clarify_with_nurse';
+            updateData.clarification_data = clarificationData;
+            const { error: updErr } = await admin.from('cases').update(updateData).eq('id', caseId);
+            if (updErr) throw new Error(`DB Update Error (clarify_with_nurse): ${updErr.message}`);
+            
+            await logTrace(caseId, 'clarify_with_nurse', 'completed', { questions_asked: questions.length });
+            return; // Stop and wait for user input
+          }
+        }
 
-    // Re-read triageData as a TriageResult shape for SOAP generator
-    const { triageData } = scoringResult;
-    const triageResultForSOAP: ReturnType<typeof evaluateTriage> = {
-      age_category: (triageData.age_category as ReturnType<typeof evaluateTriage>['age_category']) ?? 'Dewasa',
-      auto_scoring_eligible: triageData.auto_scoring_eligible ?? true,
-      esi_score: triageData.esi_score ?? null,
-      triage_warna: triageData.triage_warna ?? null,
-      override_triggered: triageData.override_triggered ?? false,
-      confidence: (triageData.confidence_level as ReturnType<typeof evaluateTriage>['confidence']) ?? 'low',
-      flags: triageData.triage_flags ?? [],
-      reasoning: [],
-    };
+        updateData.current_node = 'generate_soap';
+        const { error: updErr } = await admin.from('cases').update(updateData).eq('id', caseId);
+        if (updErr) throw new Error(`DB Update Error (urgency_scoring): ${updErr.message}`);
+      }
+      else if (currentNode === 'clarify_with_nurse') {
+        // Wait for external action to change this node back to urgency_scoring
+        return;
+      }
+      else if (currentNode === 'generate_soap') {
+        // Re-construct triage result for SOAP
+        const triageResultForSOAP: ReturnType<typeof evaluateTriage> = {
+          age_category: (typedCase.age_category as any) ?? 'Dewasa',
+          auto_scoring_eligible: typedCase.auto_scoring_eligible ?? true,
+          esi_score: typedCase.esi_score ?? null,
+          triage_warna: typedCase.triage_warna ?? null,
+          override_triggered: typedCase.override_triggered ?? false,
+          confidence: (typedCase.confidence_level as any) ?? 'low',
+          flags: typedCase.triage_flags ?? [],
+          reasoning: [],
+        };
 
-    // ── Node 4: generate_soap ────────────────────────────────────────────
-    const { soapSummary } = await nodeGenerateSOAP(
-      typedCase,
-      triageResultForSOAP,
-      drugResult.drugInteractions,
-      ragRefs
-    );
+        const { soapSummary } = await nodeGenerateSOAP(
+          typedCase,
+          triageResultForSOAP,
+          typedCase.drug_interactions ?? [],
+          typedCase.rag_references ?? []
+        );
 
-    // ── Finalize: await_doctor_verification ─────────────────────────────
-    await admin.from('cases').update({
-      soap_summary: soapSummary,
-      current_node: 'await_doctor_verification',
-    }).eq('id', caseId);
+        const { error: updErr } = await admin.from('cases').update({
+          soap_summary: soapSummary,
+          current_node: 'self_critique',
+        }).eq('id', caseId);
+        if (updErr) throw new Error(`DB Update Error (generate_soap): ${updErr.message}`);
+      }
+      else if (currentNode === 'self_critique') {
+        await logTrace(caseId, 'self_critique', 'started');
+        
+        const triageResultForCritique: ReturnType<typeof evaluateTriage> = {
+          age_category: (typedCase.age_category as any) ?? 'Dewasa',
+          auto_scoring_eligible: typedCase.auto_scoring_eligible ?? true,
+          esi_score: typedCase.esi_score ?? null,
+          triage_warna: typedCase.triage_warna ?? null,
+          override_triggered: typedCase.override_triggered ?? false,
+          confidence: (typedCase.confidence_level as any) ?? 'low',
+          flags: typedCase.triage_flags ?? [],
+          reasoning: [],
+        };
 
-    await logTrace(caseId, 'await_doctor_verification', 'started', {
-      message: 'Menunggu verifikasi dokter',
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[Orchestrator] Fatal error for case', caseId, ':', message);
+        let currentIteration = 1;
+        if (typedCase.critique_feedback) {
+          currentIteration = typedCase.critique_feedback.iteration + 1;
+        }
 
-    await logTrace(caseId, 'error', 'failed', { error: message });
-    await admin.from('cases').update({
-      current_node: 'error',
-      error_message: message,
-      confidence_level: 'low',
-    }).eq('id', caseId);
+        const critiqueResult = await selfCritiqueSOAP(typedCase, typedCase.soap_summary!, triageResultForCritique);
+        
+        const feedback: CritiqueFeedback = {
+          passed: critiqueResult.passed,
+          issues: critiqueResult.issues,
+          iteration: currentIteration
+        };
+
+        await logTrace(caseId, 'self_critique', 'completed', { passed: feedback.passed, issues: feedback.issues });
+
+        if (!critiqueResult.passed && currentIteration < 2) {
+          // Loop back to generate soap
+          const { error: updErr } = await admin.from('cases').update({
+            critique_feedback: feedback,
+            current_node: 'generate_soap'
+          }).eq('id', caseId);
+          if (updErr) throw new Error(`DB Update Error (self_critique loop): ${updErr.message}`);
+        } else {
+          // Proceed to human verification
+          const { error: updErr } = await admin.from('cases').update({
+            critique_feedback: feedback,
+            current_node: 'await_doctor_verification'
+          }).eq('id', caseId);
+          if (updErr) throw new Error(`DB Update Error (await_doctor_verification): ${updErr.message}`);
+          
+          await logTrace(caseId, 'await_doctor_verification', 'started', {
+            message: 'Menunggu verifikasi dokter',
+          });
+        }
+      }
+      else if (currentNode === 'await_doctor_verification' || currentNode === 'completed' || currentNode === 'error') {
+        // End of the line
+        return;
+      }
+      
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[Orchestrator] Fatal error for case', caseId, ':', message);
+
+      await logTrace(caseId, 'error', 'failed', { error: message });
+      await admin.from('cases').update({
+        current_node: 'error',
+        error_message: message,
+        confidence_level: 'low',
+      }).eq('id', caseId);
+      return;
+    }
   }
 }

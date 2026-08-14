@@ -14,9 +14,10 @@ import { ReasoningTrace } from '@/components/ReasoningTrace';
 import { VerificationPanel } from './VerificationPanel';
 import { ProcessingPoller } from '@/components/ProcessingPoller';
 import { ClinicalConclusion } from '@/components/ClinicalConclusion';
+import { ClarificationPanel } from '@/components/ClarificationPanel';
 import type {
   CaseRow, CaseTraceRow, SoapSummary, DrugInteraction,
-  RagReference, TriageWarna, VerificationStatus, VitalSigns,
+  RagReference, TriageWarna, VerificationStatus, VitalSigns, ClarificationData
 } from '@/lib/supabase';
 import { 
   ArrowLeft, Activity, Pill, History, FileText, 
@@ -83,7 +84,7 @@ export default async function CaseDetailPage({ params }: Props) {
   const soap = c.soap_summary as SoapSummary | null;
   const drugInteractions = (c.drug_interactions ?? []) as DrugInteraction[];
   const ragRefs = (c.rag_references ?? []) as RagReference[];
-  const isProcessing = !['await_doctor_verification', 'completed', 'error'].includes(c.current_node);
+  const isProcessing = !['await_doctor_verification', 'completed', 'error', 'clarify_with_nurse'].includes(c.current_node);
 
   // Determine which vitals are critical (for automation bias mitigation, §7.5 #5)
   const criticalVitals = {
@@ -238,6 +239,11 @@ export default async function CaseDetailPage({ params }: Props) {
 
         {/* Right column: SOAP, interactions, trace, verification */}
         <div className="space-y-6 lg:col-span-8 flex flex-col">
+
+          {/* Clarification Panel (if needed) */}
+          {c.current_node === 'clarify_with_nurse' && c.clarification_data && (
+            <ClarificationPanel caseId={c.id} data={c.clarification_data as ClarificationData} />
+          )}
 
           {/* Verification Panel (§4.7) */}
           <VerificationPanel

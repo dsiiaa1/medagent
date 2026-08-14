@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS knowledge_docs (
   source     TEXT,                         -- judul buku/panduan/URL asal
   category   TEXT,                         -- 'esi_algorithm' | 'local_guideline' | 'drug_interaction'
   metadata   JSONB        DEFAULT '{}',
-  embedding  vector(1536),                 -- dimensi text-embedding-3-small (OpenAI) / gemini text-embedding-004 (768)
+  embedding  vector(768),                 -- dimensi gemini text-embedding-004 (768)
   created_at TIMESTAMPTZ  DEFAULT NOW()
 );
 
@@ -47,8 +47,9 @@ CREATE TABLE IF NOT EXISTS cases (
   current_node           VARCHAR(60)  DEFAULT 'intake'
                                       CHECK (current_node IN (
                                         'intake','retrieve_context','urgency_scoring',
-                                        'drug_interaction_check','generate_soap',
-                                        'await_doctor_verification','completed','error'
+                                        'clarify_with_nurse', 'drug_interaction_check',
+                                        'generate_soap','self_critique','await_doctor_verification',
+                                        'completed','error'
                                       )),
 
   -- Hasil agent RAG / triage
@@ -81,6 +82,10 @@ CREATE TABLE IF NOT EXISTS cases (
   verification_note      TEXT,
   verified_by            VARCHAR(255),
   verified_at            TIMESTAMPTZ,
+
+  -- Agentic State Data
+  clarification_data     JSONB,
+  critique_feedback      JSONB,
 
   -- Error handling
   error_message          TEXT,
@@ -150,7 +155,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE cases;
 -- RAG: PGVECTOR MATCH FUNCTION
 -- ============================================================
 CREATE OR REPLACE FUNCTION match_knowledge_docs(
-  query_embedding vector(1536),
+  query_embedding vector(768),
   match_count     int DEFAULT 5
 )
 RETURNS TABLE (

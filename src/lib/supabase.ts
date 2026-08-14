@@ -38,8 +38,10 @@ export type OrchestratorNode =
   | 'intake'
   | 'retrieve_context'
   | 'urgency_scoring'
+  | 'clarify_with_nurse'
   | 'drug_interaction_check'
   | 'generate_soap'
+  | 'self_critique'
   | 'await_doctor_verification'
   | 'completed'
   | 'error';
@@ -83,6 +85,17 @@ export interface SoapSummary {
   conclusion?: string;
 }
 
+export interface ClarificationData {
+  questions: string[];
+  resolved: boolean;
+}
+
+export interface CritiqueFeedback {
+  passed: boolean;
+  issues: string[];
+  iteration: number;
+}
+
 export interface CaseRow {
   id: string;
   nama: string;
@@ -110,6 +123,8 @@ export interface CaseRow {
   verification_note: string | null;
   verified_by: string | null;
   verified_at: string | null;
+  clarification_data: ClarificationData | null;
+  critique_feedback: CritiqueFeedback | null;
   error_message: string | null;
   updated_at: string;
 }

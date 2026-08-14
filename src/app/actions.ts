@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { runOrchestrator } from '@/lib/orchestrator';
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -204,6 +205,70 @@ export async function verifyCase(
   revalidatePath('/dashboard');
 
   return { success: true, message: `Kasus berhasil di-${d.verification_status}.` };
+}
+
+export async function rejectCase(
+  caseId: string,
+  note: string,
+  verifiedBy: string
+) {
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from('cases')
+    .update({
+      verification_status: 'rejected',
+      verification_note: note,
+      verified_by: verifiedBy,
+      verified_at: new Date().toISOString(),
+    })
+    .eq('id', caseId);
+
+  if (error) {
+    console.error('Failed to reject case', error);
+    throw new Error('Gagal menolak kasus');
+  }
+
+  // Force revalidate dashboard and detail page
+  revalidatePath('/dashboard');
+  revalidatePath(`/case/${caseId}`);
+}
+
+export async function submitClarification(caseId: string, answersData: Record<string, any>) {
+  const admin = getSupabaseAdmin();
+
+  // Load the current case to get existing vital signs
+  const { data: caseRow } = await admin.from('cases').select('vital_signs').eq('id', caseId).single();
+  if (!caseRow) throw new Error('Kasus tidak ditemukan');
+
+  const mergedVitals = {
+    ...caseRow.vital_signs,
+    ...answersData, // only merge fields that were asked and answered
+  };
+
+  // Convert empty strings to null or remove them, convert to number where applicable
+  Object.keys(mergedVitals).forEach(key => {
+    if (mergedVitals[key] === '' || mergedVitals[key] === null) {
+      delete mergedVitals[key];
+    } else if (typeof mergedVitals[key] === 'string' && !isNaN(Number(mergedVitals[key]))) {
+      mergedVitals[key] = Number(mergedVitals[key]);
+    }
+  });
+
+  const { error } = await admin
+    .from('cases')
+    .update({
+      vital_signs: mergedVitals,
+      current_node: 'urgency_scoring', // resume the flow
+    })
+    .eq('id', caseId);
+
+  if (error) throw new Error('Gagal menyimpan klarifikasi');
+
+  // Trigger the orchestrator again asynchronously
+  runOrchestrator(caseId).catch(console.error);
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/case/${caseId}`);
 }
 
 // ── Action: fetch dashboard cases (server-side for initial render) ────────────

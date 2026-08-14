@@ -344,18 +344,26 @@ function checkStaticInteractions(drugs: string[]): DrugInteraction[] {
 
 // ── LLM-enhanced interaction check ───────────────────────────────────────────
 
-async function checkWithLLM(drugs: string[], existingResults: DrugInteraction[]): Promise<DrugInteraction[]> {
-  const prompt = `Kamu adalah apoteker klinis yang menganalisis interaksi obat.
+async function checkWithLLM(drugs: string[], existingResults: DrugInteraction[], patientContext: any): Promise<DrugInteraction[]> {
+  const prompt = `Kamu adalah apoteker klinis (clinical pharmacist) berpengalaman.
 Daftar obat yang sedang dikonsumsi pasien: ${drugs.join(', ')}
 
-Dari basis data lokal, interaksi berikut sudah terdeteksi:
-${existingResults.length > 0 ? existingResults.map(i => `- ${i.drug_a} + ${i.drug_b}: ${i.severity}`).join('\n') : '(tidak ada)'}
+Konteks Klinis Pasien Saat Ini:
+- Keluhan: ${patientContext?.keluhan || 'Tidak ada data'}
+- Tanda Vital: ${JSON.stringify(patientContext?.vitals || {})}
 
-Identifikasi interaksi TAMBAHAN yang belum tercantum. Balas HANYA dalam format JSON array:
+Dari basis data statis, interaksi berikut terdeteksi:
+${existingResults.length > 0 ? existingResults.map(i => `- ${i.drug_a} + ${i.drug_b} (${i.severity}): ${i.description}`).join('\n') : '(tidak ada interaksi umum)'}
+
+Tugas:
+1. Evaluasi apakah interaksi tersebut SANGAT KRITIS dalam konteks tanda vital dan keluhan pasien ini.
+2. Tambahkan peringatan atau instruksi klinis spesifik pada bagian \`description\`.
+3. Bila ada obat dalam daftar yang berisiko memperburuk keluhan atau tanda vital (walaupun bukan interaksi antar obat, tapi drug-disease interaction), sertakan juga. (Beri \`drug_a\` nama obat, dan \`drug_b\` "KONDISI KLINIS").
+
+Balas HANYA dalam format JSON array dengan struktur:
 [{"drug_a": "...", "drug_b": "...", "severity": "ringan|sedang|berat", "description": "..."}]
 
-Jika tidak ada interaksi tambahan, balas dengan array kosong: []
-Batasi respons hanya pada interaksi yang secara klinis bermakna.`;
+Jika aman dan tidak ada catatan khusus, kembalikan array \`existingResults\` dengan deskripsinya.`;
 
   try {
     const raw = await callPharmaLLM([{ role: 'user', content: prompt }], {
@@ -364,23 +372,24 @@ Batasi respons hanya pada interaksi yang secara klinis bermakna.`;
     });
 
     const parsed = parseLLMJson<DrugInteraction[] | { interactions: DrugInteraction[] }>(raw);
-    if (!parsed) return [];
+    if (!parsed) return existingResults;
 
-    // Handle both array and wrapped object
     const items: DrugInteraction[] = Array.isArray(parsed)
       ? parsed
       : (parsed as { interactions: DrugInteraction[] }).interactions ?? [];
 
-    // Filter to valid entries only
-    return items.filter(
+    const validItems = items.filter(
       (item) =>
         typeof item.drug_a === 'string' &&
         typeof item.drug_b === 'string' &&
         ['ringan', 'sedang', 'berat'].includes(item.severity) &&
         typeof item.description === 'string'
     );
-  } catch {
-    return [];
+    
+    return validItems.length > 0 ? validItems : existingResults;
+  } catch (err) {
+    console.error('[Pharma] LLM analysis failed:', err);
+    return existingResults;
   }
 }
 
@@ -392,17 +401,26 @@ export interface DrugCheckResult {
   has_critical: boolean;
 }
 
-export async function checkDrugInteractions(drugs: string[]): Promise<DrugCheckResult> {
-  if (!drugs || drugs.length < 2) {
+export async function checkDrugInteractions(
+  drugs: string[],
+  patientContext?: { keluhan?: string; vitals?: any }
+): Promise<DrugCheckResult> {
+  if (!drugs || drugs.length === 0) {
     return { interactions: [], checked_drugs: drugs ?? [], has_critical: false };
+  }
+  
+  if (drugs.length === 1 && !patientContext) {
+    return { interactions: [], checked_drugs: drugs, has_critical: false };
   }
 
   // Step 1: static database (always runs, no API call)
   const staticResults = checkStaticInteractions(drugs);
 
-  // Step 2: LLM augmentation (DISABLED for latency and accuracy/hallucination reasons)
-  // All checks now run entirely deterministically against the local BPOM/Formularium DB.
-  let allInteractions = [...staticResults];
+  // Step 2: LLM augmentation (Context-Aware Clinical Pharmacist)
+  let allInteractions = staticResults;
+  if (process.env.DEMO_MODE !== 'true' && patientContext) {
+    allInteractions = await checkWithLLM(drugs, staticResults, patientContext);
+  }
 
   // Sort by severity: berat → sedang → ringan
   const severityOrder: Record<string, number> = { berat: 0, sedang: 1, ringan: 2 };
