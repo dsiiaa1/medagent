@@ -12,7 +12,7 @@ import { ThemeToggle } from './ThemeToggle';
 export function Navbar() {
   return (
     <header
-      className="sticky top-0 z-50 backdrop-blur-md"
+      className="sticky top-0 z-50 backdrop-blur-2xl transition-colors duration-300"
       style={{
         background: 'var(--navbar-bg)',
         borderBottom: '1px solid var(--navbar-border)',
@@ -24,10 +24,10 @@ export function Navbar() {
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0" aria-label="MedAgent Home">
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-sm font-black select-none transition-all duration-200 group-hover:scale-105"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-sm font-black select-none transition-all duration-300 group-hover:scale-105 group-hover:animate-glow-pulse"
               style={{
-                background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
-                boxShadow: '0 2px 8px rgba(192,57,43,0.35)',
+                background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
+                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.35)',
               }}
             >
               M
@@ -68,10 +68,10 @@ export function Navbar() {
             <Link
               href="/input"
               id="nav-pasien-baru"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.02] active:scale-95"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-sm hover:shadow-md"
               style={{
-                background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
-                boxShadow: '0 2px 8px rgba(192,57,43,0.3)',
+                background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
+                boxShadow: '0 2px 10px rgba(225, 29, 72, 0.25)',
               }}
             >
               <Siren className="w-4 h-4" />

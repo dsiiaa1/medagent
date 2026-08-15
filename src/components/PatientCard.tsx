@@ -149,24 +149,27 @@ function VitalPill({
   if (value === undefined || value === null) return null;
   return (
     <div
-      className="flex flex-col rounded-lg px-2 py-1.5 shrink-0"
+      className="flex flex-col rounded-lg px-2.5 py-1.5 shrink-0 relative overflow-hidden"
       style={{
-        background: warn ? 'var(--triage-merah-bg)' : 'var(--bg-subtle)',
-        border: `1px solid ${warn ? 'var(--brand-red-muted)' : 'var(--border-default)'}`,
+        background: warn ? 'var(--brand-red-bg)' : 'var(--bg-subtle)',
+        border: `1px solid ${warn ? 'var(--brand-red-muted)' : 'var(--border-subtle)'}`,
       }}
     >
+      {warn && (
+        <div className="absolute top-0 right-0 w-2 h-2 rounded-full m-1 animate-pulse" style={{ background: 'var(--brand-red)' }} />
+      )}
       <span
-        className="text-[10px] font-semibold uppercase mb-0.5"
-        style={{ color: warn ? 'var(--triage-merah-text)' : 'var(--fg-muted)' }}
+        className="text-[10px] font-bold uppercase mb-0.5 tracking-wider"
+        style={{ color: warn ? 'var(--brand-red)' : 'var(--fg-muted)' }}
       >
         {label}
       </span>
       <span
-        className="text-xs font-bold font-mono"
-        style={{ color: warn ? 'var(--triage-merah-text)' : 'var(--fg-primary)' }}
+        className="text-sm font-black font-mono tracking-tight"
+        style={{ color: warn ? 'var(--brand-red)' : 'var(--fg-primary)' }}
       >
         {value}
-        <span className="text-[10px] font-normal ml-0.5" style={{ color: warn ? 'var(--triage-merah-text)' : 'var(--fg-muted)' }}>
+        <span className="text-[9px] font-semibold ml-0.5" style={{ color: warn ? 'var(--brand-red)' : 'var(--fg-muted)' }}>
           {unit}
         </span>
       </span>
@@ -200,28 +203,27 @@ export function PatientCard({
   return (
     <Link href={`/case/${id}`} className="block h-full" aria-label={`Detail pasien ${nama}`}>
       <article
-        className="group relative h-full flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1.5"
+        className="group relative h-full flex flex-col rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 glass-card"
         style={{
-          background: 'var(--bg-card)',
-          border: `1px solid ${isCritical ? 'rgba(239,68,68,0.3)' : 'var(--border-default)'}`,
+          border: `1px solid ${isCritical ? 'rgba(244,63,94,0.4)' : 'var(--border-default)'}`,
           boxShadow: isCritical
-            ? '0 2px 8px rgba(239,68,68,0.12)'
+            ? '0 4px 12px rgba(244,63,94,0.15)'
             : 'var(--shadow-sm)',
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLElement).style.boxShadow = isCritical
-            ? '0 16px 40px rgba(239,68,68,0.18)'
+            ? '0 20px 40px rgba(244,63,94,0.25)'
             : 'var(--shadow-lg)';
           (e.currentTarget as HTMLElement).style.borderColor = isCritical
-            ? 'rgba(239,68,68,0.5)'
+            ? 'rgba(244,63,94,0.6)'
             : 'var(--border-strong)';
         }}
         onMouseLeave={e => {
           (e.currentTarget as HTMLElement).style.boxShadow = isCritical
-            ? '0 2px 8px rgba(239,68,68,0.12)'
+            ? '0 4px 12px rgba(244,63,94,0.15)'
             : 'var(--shadow-sm)';
           (e.currentTarget as HTMLElement).style.borderColor = isCritical
-            ? 'rgba(239,68,68,0.3)'
+            ? 'rgba(244,63,94,0.4)'
             : 'var(--border-default)';
         }}
       >
@@ -244,7 +246,7 @@ export function PatientCard({
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="min-w-0">
               <h3
-                className="font-bold truncate text-base transition-colors"
+                className="font-extrabold truncate text-lg transition-colors tracking-tight"
                 style={{ color: 'var(--fg-primary)' }}
               >
                 {nama}

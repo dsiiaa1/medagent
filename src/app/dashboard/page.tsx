@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-up">
         <div>
           <h1
             className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1.5"
@@ -45,10 +45,10 @@ export default async function DashboardPage() {
         <Link
           href="/input"
           id="dashboard-pasien-baru-btn"
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
+          className="inline-flex shrink-0 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-sm hover:shadow-md"
           style={{
-            background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
-            boxShadow: '0 4px 14px rgba(192,57,43,0.3)',
+            background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
+            boxShadow: '0 4px 14px rgba(225, 29, 72, 0.3)',
           }}
         >
           <UserPlus className="w-4 h-4" />

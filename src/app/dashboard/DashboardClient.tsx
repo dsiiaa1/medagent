@@ -255,26 +255,31 @@ export function DashboardClient({ initialCases }: Props) {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((c) => (
-            <PatientCard
-              key={c.id}
-              id={c.id}
-              nama={c.nama}
-              ageValue={c.age_value}
-              ageUnit={c.age_unit}
-              jenisKelamin={c.jenis_kelamin}
-              keluhanUtama={c.keluhan_utama}
-              waktuMasuk={c.waktu_masuk}
-              esiScore={c.esi_score}
-              triageWarna={c.triage_warna as TriageWarna | null}
-              autoScoringEligible={c.auto_scoring_eligible}
-              overrideTriggered={c.override_triggered ?? false}
-              confidenceLevel={c.confidence_level}
-              currentNode={c.current_node}
-              verificationStatus={c.verification_status as VerificationStatus}
-              vitalSigns={c.vital_signs as VitalSigns}
-              triageFlags={c.triage_flags}
-            />
+          {filtered.map((c, idx) => (
+            <div 
+              key={c.id} 
+              className="animate-fade-up" 
+              style={{ animationDelay: `${idx * 0.05}s` }}
+            >
+              <PatientCard
+                id={c.id}
+                nama={c.nama}
+                ageValue={c.age_value}
+                ageUnit={c.age_unit}
+                jenisKelamin={c.jenis_kelamin}
+                keluhanUtama={c.keluhan_utama}
+                waktuMasuk={c.waktu_masuk}
+                esiScore={c.esi_score}
+                triageWarna={c.triage_warna as TriageWarna | null}
+                autoScoringEligible={c.auto_scoring_eligible}
+                overrideTriggered={c.override_triggered ?? false}
+                confidenceLevel={c.confidence_level}
+                currentNode={c.current_node}
+                verificationStatus={c.verification_status as VerificationStatus}
+                vitalSigns={c.vital_signs as VitalSigns}
+                triageFlags={c.triage_flags}
+              />
+            </div>
           ))}
         </div>
       )}

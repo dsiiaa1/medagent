@@ -19,28 +19,33 @@ const initialState: IntakeFormState = {};
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
+      <button
       type="submit"
       id="submit-intake"
       disabled={pending}
-      className="w-full rounded-xl px-6 py-4 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
+      className="w-full rounded-xl px-6 py-4 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2 relative overflow-hidden group"
       style={{
         background: pending
           ? '#9ca3af'
-          : 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
-        boxShadow: pending ? 'none' : '0 6px 20px rgba(192,57,43,0.35)',
+          : 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
+        boxShadow: pending ? 'none' : '0 6px 24px rgba(225, 29, 72, 0.4)',
       }}
     >
+      {!pending && (
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          <div className="absolute inset-0 w-full h-full shimmer-bg" />
+        </div>
+      )}
       {pending ? (
         <>
-          <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-          Memproses Data Pasien...
+          <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin relative z-10" />
+          <span className="relative z-10">Memproses Data Pasien...</span>
         </>
       ) : (
         <>
-          <Siren className="w-5 h-5" />
-          Daftarkan Pasien &amp; Mulai Triase
-          <ChevronRight className="w-4 h-4" />
+          <Siren className="w-5 h-5 relative z-10" />
+          <span className="relative z-10">Daftarkan Pasien &amp; Mulai Triase</span>
+          <ChevronRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
         </>
       )}
     </button>
@@ -74,14 +79,15 @@ function StepHeader({
       style={{ borderBottom: '1px solid var(--border-subtle)' }}
     >
       <div
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm shrink-0"
-        style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)` }}
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white shadow-md shrink-0 relative overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}aa 100%)` }}
       >
+        <div className="absolute inset-0 opacity-20 bg-white" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 30%, 0 70%)' }} />
         {step}
       </div>
       <div className="flex items-center gap-2" style={{ color: 'var(--fg-primary)' }}>
         <Icon className="w-5 h-5" style={{ color }} />
-        <h2 className="text-base font-bold">{title}</h2>
+        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
       </div>
     </div>
   );
@@ -155,14 +161,12 @@ function Textarea({ hasError, ...props }: React.TextareaHTMLAttributes<HTMLTextA
   );
 }
 
-function SectionCard({ children }: { children: React.ReactNode }) {
+function SectionCard({ children, delayIndex = 0 }: { children: React.ReactNode, delayIndex?: number }) {
   return (
     <div
-      className="rounded-2xl p-6"
+      className="glass-card rounded-2xl p-6 md:p-8 animate-fade-up"
       style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-default)',
-        boxShadow: 'var(--shadow-sm)',
+        animationDelay: `${delayIndex * 0.1}s`
       }}
     >
       {children}
@@ -179,10 +183,10 @@ export default function InputPage() {
       <div className="mb-8 pb-6" style={{ borderBottom: '1px solid var(--border-default)' }}>
         <div className="flex items-center gap-3 mb-2">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-md"
-            style={{ background: 'linear-gradient(135deg, #c0392b, #e74c3c)' }}
+            className="flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg animate-glow-pulse"
+            style={{ background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)' }}
           >
-            <Siren className="w-5 h-5" />
+            <Siren className="w-6 h-6" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--fg-primary)' }}>
             Input Pasien Baru
@@ -194,24 +198,26 @@ export default function InputPage() {
         </p>
 
         {/* Step indicator */}
-        <div className="flex items-center gap-2 mt-5 text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-6 text-xs font-semibold relative">
           {[
             { num: 1, label: 'Identitas', color: '#3b82f6' },
             { num: 2, label: 'Keluhan', color: '#f59e0b' },
             { num: 3, label: 'Tanda Vital', color: '#ef4444' },
-            { num: 4, label: 'Riwayat Medis', color: '#10b981' },
-          ].map((s, i) => (
-            <div key={s.num} className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
+            { num: 4, label: 'Riwayat', color: '#10b981' },
+          ].map((s, i, arr) => (
+            <div key={s.num} className="flex items-center gap-2 md:gap-4 z-10 relative">
+              <div className="flex items-center gap-2">
                 <span
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-white text-[11px] font-black"
-                  style={{ background: s.color }}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-white text-[12px] font-black shadow-sm"
+                  style={{ background: `linear-gradient(135deg, ${s.color} 0%, ${s.color}dd 100%)` }}
                 >
                   {s.num}
                 </span>
-                <span style={{ color: 'var(--fg-secondary)' }}>{s.label}</span>
+                <span style={{ color: 'var(--fg-secondary)' }} className="hidden sm:inline">{s.label}</span>
               </div>
-              {i < 3 && <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--fg-muted)' }} />}
+              {i < arr.length - 1 && (
+                <div className="h-0.5 w-6 sm:w-12 rounded-full" style={{ background: 'var(--border-strong)' }} />
+              )}
             </div>
           ))}
         </div>
@@ -235,7 +241,7 @@ export default function InputPage() {
       <form action={formAction} className="space-y-5">
 
         {/* ── Step 1: Identitas Pasien ─────────────────────────────────────── */}
-        <SectionCard>
+        <SectionCard delayIndex={1}>
           <StepHeader step={1} icon={User} title="Identitas Pasien" color="#3b82f6" />
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -286,7 +292,7 @@ export default function InputPage() {
         </SectionCard>
 
         {/* ── Step 2: Keluhan Utama ────────────────────────────────────────── */}
-        <SectionCard>
+        <SectionCard delayIndex={2}>
           <StepHeader step={2} icon={Stethoscope} title="Keluhan Utama" color="#f59e0b" />
           <div>
             <Label htmlFor="keluhan_utama" required>Deskripsi Keluhan</Label>
@@ -306,7 +312,7 @@ export default function InputPage() {
         </SectionCard>
 
         {/* ── Step 3: Tanda Vital ──────────────────────────────────────────── */}
-        <SectionCard>
+        <SectionCard delayIndex={3}>
           <StepHeader step={3} icon={Activity} title="Tanda Vital" color="#ef4444" />
           <p className="text-sm mb-6 -mt-2" style={{ color: 'var(--fg-muted)' }}>
             Data vital sangat menentukan skor ESI secara otomatis. Kosongkan jika belum diukur.
@@ -377,7 +383,7 @@ export default function InputPage() {
         </SectionCard>
 
         {/* ── Step 4: Riwayat Medis ───────────────────────────────────────── */}
-        <SectionCard>
+        <SectionCard delayIndex={4}>
           <StepHeader step={4} icon={FileText} title="Riwayat Medis &amp; Obat" color="#10b981" />
           <div className="grid gap-5">
             <div>

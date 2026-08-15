@@ -100,23 +100,23 @@ export default function HomePage() {
       {/* ── Ambient background orbs ── */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
-          className="absolute -top-48 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #c0392b 0%, transparent 70%)' }}
+          className="absolute -top-48 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl animate-breathe"
+          style={{ background: 'radial-gradient(circle, var(--brand-red) 0%, transparent 70%)', animationDelay: '0s' }}
         />
         <div
-          className="absolute top-96 right-0 w-80 h-80 rounded-full opacity-10 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }}
+          className="absolute top-96 right-0 w-80 h-80 rounded-full opacity-10 blur-3xl animate-breathe"
+          style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', animationDelay: '2s' }}
         />
         <div
-          className="absolute bottom-48 left-0 w-64 h-64 rounded-full opacity-10 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #047857 0%, transparent 70%)' }}
+          className="absolute bottom-48 left-0 w-64 h-64 rounded-full opacity-10 blur-3xl animate-breathe"
+          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', animationDelay: '4s' }}
         />
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-16 sm:py-24 relative">
 
         {/* ── Hero ────────────────────────────────────────────────────────────── */}
-        <div className="text-center mb-16 animate-float-up">
+        <div className="text-center mb-16 animate-fade-up">
 
           {/* Competition badge */}
           <div
@@ -183,10 +183,10 @@ export default function HomePage() {
             <Link
               href="/input"
               id="hero-pasien-baru-btn"
-              className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-lg"
               style={{
-                background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
-                boxShadow: '0 4px 14px rgba(192,57,43,0.35)',
+                background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
+                boxShadow: '0 4px 14px rgba(225, 29, 72, 0.35)',
               }}
             >
               <Siren className="w-5 h-5" />
@@ -233,9 +233,11 @@ export default function HomePage() {
                   </div>
                   {/* Connector */}
                   <div
-                    className="hidden md:block h-px w-8"
-                    style={{ background: `linear-gradient(90deg, var(--border-default), transparent)` }}
-                  />
+                    className="hidden md:block h-px w-8 relative overflow-hidden"
+                    style={{ background: 'var(--border-default)' }}
+                  >
+                    <div className="absolute inset-0 w-full h-full shimmer-bg" />
+                  </div>
                 </div>
               ))}
 
@@ -249,7 +251,7 @@ export default function HomePage() {
                   }}
                 >
                   <div
-                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full"
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full animate-glow-pulse"
                     style={{
                       background: 'var(--brand-red)',
                       color: '#fff',
@@ -288,9 +290,11 @@ export default function HomePage() {
               {FLOW_STEPS.filter(s => !s.isParallel && !s.isFinal).slice(2).concat(FLOW_STEPS.filter(s => s.isFinal)).map((step) => (
                 <div key={step.num} className="flex items-center gap-2 md:gap-3">
                   <div
-                    className="hidden md:block h-px w-8"
-                    style={{ background: `linear-gradient(90deg, transparent, var(--border-default))` }}
-                  />
+                    className="hidden md:block h-px w-8 relative overflow-hidden"
+                    style={{ background: 'var(--border-default)' }}
+                  >
+                    <div className="absolute inset-0 w-full h-full shimmer-bg" />
+                  </div>
                   <div className="flex flex-col items-center gap-1">
                     <div
                       className={`flex h-12 w-12 items-center justify-center rounded-xl font-bold text-sm shadow-sm transition-all hover:scale-105 ${step.isFinal ? 'text-white' : ''}`}
@@ -318,24 +322,19 @@ export default function HomePage() {
         </div>
 
         {/* ── Main Feature Cards ────────────────────────────────────────────────── */}
-        <div className="grid gap-5 sm:grid-cols-3 mb-5">
+        <div className="grid gap-5 sm:grid-cols-3 mb-5 animate-fade-up" style={{ animationDelay: '0.1s' }}>
           {MAIN_FEATURES.map(({ icon: Icon, color, bg, title, desc, badge }) => (
             <div
               key={title}
-              className="rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 group"
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
-              }}
+              className="glass-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-2 group relative overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle at center, ${color}15 0%, transparent 70%)`
+                }}
+              />
+              <div className="flex items-start justify-between mb-4 relative z-10">
                 <div
                   className="inline-flex items-center justify-center rounded-xl p-3 transition-transform duration-200 group-hover:scale-110"
                   style={{ background: bg }}
@@ -356,7 +355,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Secondary Feature Grid ────────────────────────────────────────────── */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-16">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-16 animate-fade-up" style={{ animationDelay: '0.2s' }}>
           {SECONDARY_FEATURES.map(({ icon: Icon, title, desc, iconFill }) => (
             <div
               key={title}
@@ -383,14 +382,16 @@ export default function HomePage() {
 
         {/* ── CTA Strip ────────────────────────────────────────────────────────── */}
         <div
-          className="rounded-2xl p-8 text-center mb-12"
+          className="rounded-2xl p-8 text-center mb-12 animate-fade-up relative overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, var(--brand-red-bg) 0%, var(--bg-card) 100%)',
             border: '1px solid var(--brand-red-muted)',
             boxShadow: 'var(--shadow-glow-red)',
+            animationDelay: '0.3s'
           }}
         >
-          <div className="flex items-center justify-center gap-2 mb-3">
+          <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23f43f5e\' fill-opacity=\'0.2\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+          <div className="flex items-center justify-center gap-2 mb-3 relative z-10">
             <Clock className="w-5 h-5" style={{ color: 'var(--brand-red)' }} />
             <span className="font-bold text-lg" style={{ color: 'var(--fg-primary)' }}>
               Mulai analisis dalam hitungan detik
@@ -402,10 +403,10 @@ export default function HomePage() {
           <Link
             href="/input"
             id="cta-daftar-btn"
-            className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 relative z-10"
             style={{
-              background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
-              boxShadow: '0 6px 20px rgba(192,57,43,0.4)',
+              background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
+              boxShadow: '0 6px 20px rgba(225, 29, 72, 0.4)',
             }}
           >
             <Siren className="w-5 h-5" />

@@ -3,93 +3,93 @@
 /* ── Design Tokens — Light Mode ─────────────────────────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg-page:       #f4f5f7;
+  --bg-page:       #f8fafc;
   --bg-card:       #ffffff;
-  --bg-card-hover: #f9fafb;
-  --bg-subtle:     #f4f5f7;
+  --bg-card-hover: #f1f5f9;
+  --bg-subtle:     #f8fafc;
   --bg-input:      #ffffff;
 
   /* Borders */
-  --border-default: #e5e7eb;
-  --border-subtle:  #f0f1f3;
-  --border-strong:  #d1d5db;
+  --border-default: #e2e8f0;
+  --border-subtle:  #f1f5f9;
+  --border-strong:  #cbd5e1;
 
   /* Foreground / Text */
-  --fg-primary:   #1f2933;
-  --fg-secondary: #4b5563;
-  --fg-muted:     #9ca3af;
+  --fg-primary:   #0f172a;
+  --fg-secondary: #475569;
+  --fg-muted:     #94a3b8;
   --fg-inverted:  #ffffff;
 
   /* Brand / Triage */
-  --brand-red:    #c0392b;
-  --brand-red-bg: #fef2f2;
-  --brand-red-muted: #fee2e2;
+  --brand-red:    #e11d48;
+  --brand-red-bg: #fff1f2;
+  --brand-red-muted: #ffe4e6;
 
   /* Triage colors */
-  --triage-merah-bg:   #fbeae8;
-  --triage-merah-text: #c0392b;
-  --triage-kuning-bg:  #fcf3e3;
-  --triage-kuning-text:#b7791f;
-  --triage-hijau-bg:   #e7f5ec;
-  --triage-hijau-text: #1e7e4f;
-  --triage-hitam-bg:   #e4e6ea;
-  --triage-hitam-text: #1f2933;
+  --triage-merah-bg:   #fff1f2;
+  --triage-merah-text: #e11d48;
+  --triage-kuning-bg:  #fffbeb;
+  --triage-kuning-text:#d97706;
+  --triage-hijau-bg:   #ecfdf5;
+  --triage-hijau-text: #059669;
+  --triage-hitam-bg:   #f1f5f9;
+  --triage-hitam-text: #0f172a;
 
   /* Navbar */
-  --navbar-bg: rgba(255,255,255,0.92);
-  --navbar-border: #e5e7eb;
+  --navbar-bg: rgba(255,255,255,0.85);
+  --navbar-border: rgba(226, 232, 240, 0.6);
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,.08), 0 1px 2px -1px rgba(0,0,0,.06);
-  --shadow-md: 0 4px 12px -2px rgba(0,0,0,.1), 0 2px 6px -2px rgba(0,0,0,.07);
-  --shadow-lg: 0 10px 30px -5px rgba(0,0,0,.12), 0 4px 12px -4px rgba(0,0,0,.08);
-  --shadow-glow-red: 0 0 20px rgba(192,57,43,0.15);
+  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.05), 0 2px 4px -2px rgba(0,0,0,.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.05), 0 4px 6px -4px rgba(0,0,0,.05);
+  --shadow-glow-red: 0 0 24px rgba(225, 29, 72, 0.15);
 }
 
 /* ── Design Tokens — Dark Mode ──────────────────────────────────────────────── */
 .dark {
   /* Backgrounds */
-  --bg-page:       #0f1117;
-  --bg-card:       #1a1d27;
-  --bg-card-hover: #1f2335;
-  --bg-subtle:     #151823;
-  --bg-input:      #1f2335;
+  --bg-page:       #0B0F19; /* Sleek Medical Tech Dark */
+  --bg-card:       #111827;
+  --bg-card-hover: #1f2937;
+  --bg-subtle:     #0f172a;
+  --bg-input:      #111827;
 
   /* Borders */
-  --border-default: #2a2e42;
-  --border-subtle:  #1f2335;
+  --border-default: #1f2937;
+  --border-subtle:  #111827;
   --border-strong:  #374151;
 
   /* Foreground / Text */
-  --fg-primary:   #e8eaf0;
+  --fg-primary:   #f8fafc;
   --fg-secondary: #94a3b8;
-  --fg-muted:     #64748b;
-  --fg-inverted:  #0f1117;
+  --fg-muted:     #475569;
+  --fg-inverted:  #0B0F19;
 
   /* Brand / Triage */
-  --brand-red:    #e5534b;
-  --brand-red-bg: #1f1215;
-  --brand-red-muted: #2d1515;
+  --brand-red:    #f43f5e;
+  --brand-red-bg: rgba(244, 63, 94, 0.1);
+  --brand-red-muted: rgba(244, 63, 94, 0.2);
 
   /* Triage colors (dark adjusted) */
-  --triage-merah-bg:   #1f1215;
-  --triage-merah-text: #f87171;
-  --triage-kuning-bg:  #1e1710;
+  --triage-merah-bg:   rgba(225, 29, 72, 0.1);
+  --triage-merah-text: #fb7185;
+  --triage-kuning-bg:  rgba(217, 119, 6, 0.1);
   --triage-kuning-text:#fbbf24;
-  --triage-hijau-bg:   #0e1e16;
+  --triage-hijau-bg:   rgba(5, 150, 105, 0.1);
   --triage-hijau-text: #34d399;
-  --triage-hitam-bg:   #1c1c1c;
-  --triage-hitam-text: #9ca3af;
+  --triage-hitam-bg:   rgba(15, 23, 42, 0.5);
+  --triage-hitam-text: #94a3b8;
 
   /* Navbar */
-  --navbar-bg: rgba(15,17,23,0.94);
-  --navbar-border: #2a2e42;
+  --navbar-bg: rgba(11, 15, 25, 0.85);
+  --navbar-border: rgba(31, 41, 55, 0.6);
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,.4);
-  --shadow-md: 0 4px 12px -2px rgba(0,0,0,.5);
-  --shadow-lg: 0 10px 30px -5px rgba(0,0,0,.6);
-  --shadow-glow-red: 0 0 24px rgba(229,83,75,0.25);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,.5);
+  --shadow-md: 0 4px 12px -2px rgba(0,0,0,.6);
+  --shadow-lg: 0 10px 30px -5px rgba(0,0,0,.7);
+  --shadow-glow-red: 0 0 32px rgba(244, 63, 94, 0.2);
 }
 
 /* ── Base styles ─────────────────────────────────────────────────────────────── */
@@ -98,7 +98,8 @@ body {
   color: var(--fg-primary);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.4s ease, color 0.4s ease;
+  letter-spacing: -0.01em;
 }
 
 /* ── Typography scale ───────────────────────────────────────────────────────── */
@@ -140,16 +141,18 @@ body {
 
 /* ── Glassmorphism card ──────────────────────────────────────────────────────── */
 .glass-card {
-  background: rgba(255,255,255,0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-sm);
 }
 .dark .glass-card {
-  background: rgba(26,29,39,0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* ── Animations ─────────────────────────────────────────────────────────────── */
@@ -165,8 +168,13 @@ body {
 }
 
 @keyframes float-up {
-  0%   { opacity: 0; transform: translateY(16px); }
+  0%   { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float-up-stagger {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes gradient-shift {
@@ -175,14 +183,22 @@ body {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(192,57,43,0.2); }
-  50%       { box-shadow: 0 0 20px rgba(192,57,43,0.5); }
+  0%, 100% { box-shadow: 0 0 12px rgba(225, 29, 72, 0.2); }
+  50%       { box-shadow: 0 0 24px rgba(225, 29, 72, 0.6); }
+}
+
+@keyframes breathe-orb {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.4; }
+  33%      { transform: scale(1.1) translate(20px, -20px); opacity: 0.6; }
+  66%      { transform: scale(0.9) translate(-20px, 20px); opacity: 0.3; }
 }
 
 /* Utility animation classes */
-.animate-float-up    { animation: float-up 0.4s ease forwards; }
+.animate-float-up    { animation: float-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-up     { animation: float-up-stagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-pulse-dot   { animation: pulse-dot 1.5s ease-in-out infinite; }
 .animate-glow-pulse  { animation: glow-pulse 2s ease-in-out infinite; }
+.animate-breathe     { animation: breathe-orb 15s ease-in-out infinite; }
 
 .shimmer-bg {
   background: linear-gradient(
@@ -206,7 +222,7 @@ body {
 
 /* Animated gradient text */
 .gradient-text {
-  background-image: linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #c0392b 100%);
+  background-image: linear-gradient(135deg, #e11d48 0%, #f43f5e 50%, #e11d48 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -214,7 +230,7 @@ body {
   animation: gradient-shift 4s ease infinite;
 }
 .dark .gradient-text {
-  background-image: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 50%, #e5534b 100%);
+  background-image: linear-gradient(135deg, #fb7185 0%, #fda4af 50%, #f43f5e 100%);
 }
 
 /* ── Theme toggle button ─────────────────────────────────────────────────────── */
@@ -261,11 +277,13 @@ body {
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   color: var(--fg-primary);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .themed-input::placeholder { color: var(--fg-muted); }
 .themed-input:focus {
   outline: none;
   border-color: var(--brand-red);
-  box-shadow: 0 0 0 3px rgba(192,57,43,0.12);
+  box-shadow: 0 0 0 4px var(--brand-red-muted);
+  transform: translateY(-1px);
 }
+
