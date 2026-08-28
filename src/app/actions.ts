@@ -121,7 +121,11 @@ export async function submitIntake(
   // Trigger orchestrator via API endpoint (fire-and-forget).
   // Using fetch() is more reliable than after() across all environments (dev + prod).
   // We don't await this — redirect happens immediately and the spinner polls for completion.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  
+  // We must not await this fetch, but we can attach a .then to ensure it fires.
   fetch(`${baseUrl}/api/process-case`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -265,7 +269,10 @@ export async function submitClarification(caseId: string, answersData: Record<st
   if (error) throw new Error('Gagal menyimpan klarifikasi');
 
   // Trigger the orchestrator via API endpoint so it doesn't freeze when action completes
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    
   fetch(`${baseUrl}/api/process-case`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
