@@ -2,8 +2,8 @@
 
 /**
  * PatientCard — used in the dashboard list.
- * Upgraded: CSS variable theming, glassmorphism for critical cases,
- * dramatic hover state, improved VitalPill, themed pipeline progress.
+ * ER Cockpit design: solid cards (no glassmorphism), high-contrast
+ * accent bars, improved VitalPill, themed pipeline progress.
  */
 
 import Link from 'next/link';
@@ -203,7 +203,7 @@ export function PatientCard({
   return (
     <Link href={`/case/${id}`} className="block h-full" aria-label={`Detail pasien ${nama}`}>
       <article
-        className="group relative h-full flex flex-col rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 glass-card"
+        className="group relative h-full flex flex-col rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-1 solid-medical-card"
         style={{
           border: `1px solid ${isCritical ? 'rgba(244,63,94,0.4)' : 'var(--border-default)'}`,
           boxShadow: isCritical

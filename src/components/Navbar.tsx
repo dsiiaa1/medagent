@@ -6,6 +6,7 @@
  */
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Siren, LayoutDashboard } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -19,23 +20,18 @@ export function Navbar() {
       }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex h-14 items-center justify-between gap-4">
+        <div className="flex h-16 items-center justify-between gap-4">
 
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0" aria-label="MedAgent Home">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-sm font-black select-none transition-all duration-300 group-hover:scale-105 group-hover:animate-glow-pulse"
-              style={{
-                background: 'linear-gradient(135deg, var(--brand-red) 0%, #fb7185 100%)',
-                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.35)',
-              }}
-            >
-              M
-            </span>
-            <span className="font-bold text-sm tracking-tight" style={{ color: 'var(--fg-primary)' }}>
-              MedAgent
-              <span style={{ color: 'var(--brand-red)' }}>-Alpha</span>
-            </span>
+            <Image 
+              src="/images/logo.png" 
+              alt="MedAgent Logo" 
+              width={250} 
+              height={60} 
+              className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
+              priority
+            />
           </Link>
 
           {/* Nav links */}

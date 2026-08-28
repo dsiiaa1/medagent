@@ -2,11 +2,12 @@
 
 /**
  * / — Landing / Home page
- * Premium redesign: animated hero, live stats strip, animated flow diagram,
- * feature cards with glassmorphism, dark/light adaptive.
+ * ER Cockpit design: clean hero, live stats strip, animated flow diagram,
+ * solid feature cards (no glassmorphism), dark/light adaptive.
  */
 
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Trophy, BrainCircuit, Pill, Stethoscope, Circle,
   SearchCheck, TriangleAlert, Siren, ClipboardList,
@@ -97,21 +98,7 @@ export default function HomePage() {
   return (
     <div style={{ background: 'var(--bg-page)' }} className="relative overflow-hidden">
 
-      {/* ── Ambient background orbs ── */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div
-          className="absolute -top-48 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl animate-breathe"
-          style={{ background: 'radial-gradient(circle, var(--brand-red) 0%, transparent 70%)', animationDelay: '0s' }}
-        />
-        <div
-          className="absolute top-96 right-0 w-80 h-80 rounded-full opacity-10 blur-3xl animate-breathe"
-          style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', animationDelay: '2s' }}
-        />
-        <div
-          className="absolute bottom-48 left-0 w-64 h-64 rounded-full opacity-10 blur-3xl animate-breathe"
-          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', animationDelay: '4s' }}
-        />
-      </div>
+      {/* Background kept clean — no blurry orbs for medical context */}
 
       <div className="mx-auto max-w-5xl px-4 py-16 sm:py-24 relative">
 
@@ -132,12 +119,15 @@ export default function HomePage() {
           </div>
 
           {/* Main heading */}
-          <h1
-            className="text-5xl sm:text-6xl font-black tracking-tight mb-6"
-            style={{ color: 'var(--fg-primary)' }}
-          >
-            Med<span className="gradient-text">Agent</span>
-            <span className="gradient-text">-Alpha</span>
+          <h1 className="flex justify-center mb-6">
+            <Image 
+              src="/images/logo.png" 
+              alt="MedAgent-Alpha" 
+              width={600} 
+              height={120} 
+              className="h-20 sm:h-32 w-auto scale-110"
+              priority
+            />
           </h1>
 
           <p
@@ -326,7 +316,7 @@ export default function HomePage() {
           {MAIN_FEATURES.map(({ icon: Icon, color, bg, title, desc, badge }) => (
             <div
               key={title}
-              className="glass-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-2 group relative overflow-hidden"
+              className="solid-medical-card rounded-xl p-6 transition-all duration-200 hover:-translate-y-1 group relative overflow-hidden"
             >
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"

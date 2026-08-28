@@ -2,17 +2,21 @@
 
 /**
  * DashboardClient — subscribes to Supabase Realtime for live updates.
- * Receives initialCases from the Server Component for instant first paint.
- * Upgraded: themed stats cards, premium live badge, colored filter pills.
+ * ER Cockpit redesign:
+ *   - Critical audio-visual alert (screen flash + sound + banner) when
+ *     a new "Merah" pending case arrives via realtime.
+ *   - Solid cards (no glassmorphism), high-contrast stat cards.
+ *   - Filter pills with colored active states.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PatientCard } from '@/components/PatientCard';
 import type { CaseRow, TriageWarna, VerificationStatus, VitalSigns } from '@/lib/supabase';
 import {
   FolderOpen, Filter, ArrowRight, Users, AlertOctagon,
-  AlertTriangle, CheckCircle, ClockAlert, Wifi, WifiOff
+  AlertTriangle, CheckCircle, ClockAlert, Wifi, WifiOff,
+  Siren, X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -45,11 +49,68 @@ const FILTER_OPTIONS = [
   { value: 'Hijau',   label: 'Hijau',              activeStyle: { background: '#059669', color: '#fff' } },
 ] as const;
 
+/* ── Audio beep generator (synthetic, no external file needed) ────────────── */
+function playCriticalBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const playBeep = (startTime: number) => {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.frequency.value = 880; // A5 — urgent but not painful
+      oscillator.type = 'square';
+      gain.gain.setValueAtTime(0.3, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 0.15);
+    };
+    // Three rapid beeps
+    playBeep(ctx.currentTime);
+    playBeep(ctx.currentTime + 0.2);
+    playBeep(ctx.currentTime + 0.4);
+  } catch {
+    // Audio not available — fail silently
+  }
+}
+
 export function DashboardClient({ initialCases }: Props) {
   const [cases, setCases] = useState<DashboardCase[]>(() => sortCases(initialCases));
   const [filter, setFilter] = useState<string>('all');
   const [liveIndicator, setLiveIndicator] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
+
+  // Critical alert state
+  const [criticalAlert, setCriticalAlert] = useState<{
+    show: boolean;
+    patientName: string;
+    patientId: string;
+  } | null>(null);
+  const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Dismiss critical alert
+  const dismissAlert = useCallback(() => {
+    setCriticalAlert(null);
+    if (alertTimeoutRef.current) {
+      clearTimeout(alertTimeoutRef.current);
+      alertTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Trigger critical alert
+  const triggerCriticalAlert = useCallback((patientName: string, patientId: string) => {
+    // Play beep sound
+    playCriticalBeep();
+
+    // Show visual alert
+    setCriticalAlert({ show: true, patientName, patientId });
+
+    // Auto-dismiss after 15 seconds
+    if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current);
+    alertTimeoutRef.current = setTimeout(() => {
+      setCriticalAlert(null);
+    }, 15000);
+  }, []);
 
   // Realtime subscription
   useEffect(() => {
@@ -64,17 +125,27 @@ export function DashboardClient({ initialCases }: Props) {
           setTimeout(() => setLiveIndicator(false), 2500);
 
           if (payload.eventType === 'INSERT') {
-            setCases((prev) => sortCases([...prev, payload.new as DashboardCase]));
+            const newCase = payload.new as DashboardCase;
+            setCases((prev) => sortCases([...prev, newCase]));
+
+            // Check if critical
+            if (newCase.triage_warna === 'Merah' && newCase.verification_status === 'pending') {
+              triggerCriticalAlert(newCase.nama, newCase.id);
+            }
           } else if (payload.eventType === 'UPDATE') {
+            const updatedCase = payload.new as DashboardCase;
             setCases((prev) =>
               sortCases(
                 prev.map((c) =>
-                  c.id === (payload.new as DashboardCase).id
-                    ? { ...c, ...(payload.new as DashboardCase) }
-                    : c
+                  c.id === updatedCase.id ? { ...c, ...updatedCase } : c
                 )
               )
             );
+
+            // Check if this update made it critical + pending
+            if (updatedCase.triage_warna === 'Merah' && updatedCase.verification_status === 'pending') {
+              triggerCriticalAlert(updatedCase.nama, updatedCase.id);
+            }
           } else if (payload.eventType === 'DELETE') {
             setCases((prev) => prev.filter((c) => c.id !== payload.old.id));
           }
@@ -85,7 +156,7 @@ export function DashboardClient({ initialCases }: Props) {
       });
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [triggerCriticalAlert]);
 
   // Filtering
   const filtered = cases.filter((c) => {
@@ -104,68 +175,99 @@ export function DashboardClient({ initialCases }: Props) {
 
   const statCards = [
     {
-      label: 'Total Pasien',
+      label: 'Total',
       value: stats.total,
       icon: Users,
       iconColor: 'var(--fg-secondary)',
-      bgStyle: { background: 'var(--bg-card)', border: '1px solid var(--border-default)' },
+      bgStyle: { background: 'var(--bg-card)', border: '1.5px solid var(--border-default)' },
       valueStyle: { color: 'var(--fg-primary)' },
     },
     {
-      label: 'Kritis (Merah)',
+      label: 'Kritis',
       value: stats.merah,
       icon: AlertOctagon,
-      iconColor: 'var(--triage-merah-text)',
-      bgStyle: { background: 'var(--triage-merah-bg)', border: '1px solid var(--brand-red-muted)' },
-      valueStyle: { color: 'var(--triage-merah-text)' },
+      iconColor: '#dc2626',
+      bgStyle: { background: 'var(--triage-merah-bg)', border: '1.5px solid #dc2626' },
+      valueStyle: { color: '#dc2626' },
     },
     {
-      label: 'Urgent (Kuning)',
+      label: 'Urgent',
       value: stats.kuning,
       icon: AlertTriangle,
-      iconColor: 'var(--triage-kuning-text)',
-      bgStyle: { background: 'var(--triage-kuning-bg)', border: '1px solid #fde68a' },
-      valueStyle: { color: 'var(--triage-kuning-text)' },
+      iconColor: '#d97706',
+      bgStyle: { background: 'var(--triage-kuning-bg)', border: '1.5px solid #d97706' },
+      valueStyle: { color: '#d97706' },
     },
     {
-      label: 'Stabil (Hijau)',
+      label: 'Stabil',
       value: stats.hijau,
       icon: CheckCircle,
-      iconColor: 'var(--triage-hijau-text)',
-      bgStyle: { background: 'var(--triage-hijau-bg)', border: '1px solid #a7f3d0' },
-      valueStyle: { color: 'var(--triage-hijau-text)' },
+      iconColor: '#059669',
+      bgStyle: { background: 'var(--triage-hijau-bg)', border: '1.5px solid #059669' },
+      valueStyle: { color: '#059669' },
     },
     {
-      label: 'Pending Review',
+      label: 'Pending',
       value: stats.pending,
       icon: ClockAlert,
       iconColor: '#d97706',
-      bgStyle: { background: '#fffbeb', border: '1px solid #fde68a' },
+      bgStyle: { background: '#fffbeb', border: '1.5px solid #d97706' },
       valueStyle: { color: '#b45309' },
     },
   ];
 
   return (
     <div>
+      {/* ── CRITICAL ALERT OVERLAY ──────────────────────────────── */}
+      {criticalAlert?.show && (
+        <>
+          <div className="critical-overlay" />
+          <div className="critical-banner">
+            <Siren className="w-6 h-6 shrink-0 animate-pulse" />
+            <div className="flex-1 min-w-0">
+              <div className="text-base font-black">PASIEN KRITIS BARU</div>
+              <div className="text-sm font-medium opacity-90 truncate">
+                {criticalAlert.patientName} — butuh review segera
+              </div>
+            </div>
+            <Link
+              href={`/case/${criticalAlert.patientId}`}
+              onClick={dismissAlert}
+              className="shrink-0"
+            >
+              <button type="button">Lihat Pasien</button>
+            </Link>
+            <button
+              type="button"
+              onClick={dismissAlert}
+              className="!p-2 !border-0 !bg-transparent opacity-70 hover:opacity-100"
+              aria-label="Tutup alert"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </>
+      )}
+
       {/* Stats bar */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {statCards.map(({ label, value, icon: Icon, iconColor, bgStyle, valueStyle }) => (
           <div
             key={label}
-            className="rounded-2xl px-4 py-4 flex flex-col items-center text-center gap-1 transition-all hover:-translate-y-0.5"
+            className="rounded-xl px-4 py-3 flex flex-col items-center text-center gap-0.5 transition-all hover:-translate-y-0.5"
             style={{ ...bgStyle, boxShadow: 'var(--shadow-sm)' }}
           >
-            <Icon className="w-5 h-5 mb-1 opacity-80" style={{ color: iconColor }} />
+            <Icon className="w-4 h-4 mb-0.5" style={{ color: iconColor }} />
             <p className="text-3xl font-black leading-none" style={valueStyle}>{value}</p>
-            <p className="text-[11px] font-semibold uppercase tracking-wider opacity-70" style={valueStyle}>{label}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider" style={valueStyle}>{label}</p>
           </div>
         ))}
       </div>
 
       {/* Filter + live indicator */}
       <div
-        className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4"
-        style={{ borderBottom: '1px solid var(--border-default)' }}
+        className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4"
+        style={{ borderBottom: '2px solid var(--border-default)' }}
       >
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
           <Filter className="w-4 h-4 shrink-0 mr-1" style={{ color: 'var(--fg-muted)' }} />
@@ -174,13 +276,13 @@ export function DashboardClient({ initialCases }: Props) {
               key={value}
               id={`filter-${value}`}
               onClick={() => setFilter(value)}
-              className="rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all duration-200 hover:scale-[1.03]"
+              className="rounded-full px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all duration-150"
               style={
                 filter === value
                   ? { ...activeStyle, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }
                   : {
                       background: 'var(--bg-subtle)',
-                      border: '1px solid var(--border-default)',
+                      border: '1.5px solid var(--border-default)',
                       color: 'var(--fg-secondary)',
                     }
               }
@@ -192,11 +294,11 @@ export function DashboardClient({ initialCases }: Props) {
 
         {/* Live indicator */}
         <div
-          className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0"
+          className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
           style={{
             background: 'var(--bg-subtle)',
-            border: '1px solid var(--border-default)',
-            color: isConnected ? 'var(--triage-hijau-text)' : 'var(--fg-muted)',
+            border: '1.5px solid var(--border-default)',
+            color: isConnected ? '#059669' : 'var(--fg-muted)',
           }}
         >
           {isConnected ? (
@@ -222,12 +324,12 @@ export function DashboardClient({ initialCases }: Props) {
       {/* Case list */}
       {filtered.length === 0 ? (
         <div
-          className="flex flex-col items-center justify-center rounded-3xl border border-dashed py-24 px-4 text-center"
+          className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-20 px-4 text-center"
           style={{ borderColor: 'var(--border-strong)', background: 'var(--bg-subtle)' }}
         >
           <div
             className="p-4 rounded-full mb-4"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+            style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border-default)' }}
           >
             <FolderOpen className="w-10 h-10" style={{ color: 'var(--fg-muted)' }} />
           </div>
@@ -242,11 +344,10 @@ export function DashboardClient({ initialCases }: Props) {
           {cases.length === 0 && (
             <Link
               href="/input"
-              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-lg transition-colors"
               style={{
-                color: 'var(--brand-red)',
-                background: 'var(--brand-red-bg)',
-                border: '1px solid var(--brand-red-muted)',
+                color: '#fff',
+                background: '#dc2626',
               }}
             >
               Daftarkan Pasien Pertama <ArrowRight className="w-4 h-4" />
@@ -256,9 +357,9 @@ export function DashboardClient({ initialCases }: Props) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((c, idx) => (
-            <div 
-              key={c.id} 
-              className="animate-fade-up" 
+            <div
+              key={c.id}
+              className="animate-fade-up"
               style={{ animationDelay: `${idx * 0.05}s` }}
             >
               <PatientCard

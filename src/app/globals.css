@@ -139,20 +139,128 @@ body {
 .hide-scrollbar { scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ── Glassmorphism card ──────────────────────────────────────────────────────── */
-.glass-card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+/* ── Solid Medical Card (replaces glassmorphism) ─────────────────────────────── */
+.glass-card,
+.solid-medical-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-default);
   box-shadow: var(--shadow-sm);
 }
-.dark .glass-card {
-  background: rgba(17, 24, 39, 0.5);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+.glass-card:hover,
+.solid-medical-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Critical Alert Flash (dashboard red blink) ──────────────────────────────── */
+@keyframes critical-alert-flash {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
+}
+.critical-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(220, 38, 38, 0.12);
+  pointer-events: none;
+  animation: critical-alert-flash 1s ease-in-out infinite;
+}
+.dark .critical-overlay {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* ── Critical Alert Banner ───────────────────────────────────────────────────── */
+.critical-banner {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #dc2626;
+  color: #fff;
+  padding: 16px 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  font-size: 15px;
+  animation: float-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  max-width: 90vw;
+}
+.critical-banner button {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.critical-banner button:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+/* ── Voice Dictation Button ──────────────────────────────────────────────────── */
+.voice-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border-default);
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.voice-btn:hover {
+  border-color: var(--brand-red);
+  color: var(--brand-red);
+  background: var(--brand-red-bg);
+}
+.voice-btn.recording {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+  animation: pulse-dot 1s ease-in-out infinite;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+}
+.dark .voice-btn.recording {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* ── Quick Chip (symptom shortcut button) ────────────────────────────────────── */
+.quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-default);
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.quick-chip:hover {
+  background: var(--brand-red-bg);
+  border-color: var(--brand-red-muted);
+  color: var(--brand-red);
+}
+.quick-chip.active {
+  background: var(--brand-red);
+  border-color: var(--brand-red);
+  color: #fff;
 }
 
 /* ── Animations ─────────────────────────────────────────────────────────────── */
