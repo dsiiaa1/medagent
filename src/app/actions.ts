@@ -7,9 +7,13 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { runOrchestrator } from '@/lib/orchestrator';
+
+export const maxDuration = 60; // Allow 60 seconds on Vercel for background AI tasks
+
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -118,19 +122,15 @@ export async function submitIntake(
     return { message: `Gagal menyimpan data: ${error?.message ?? 'Unknown error'}` };
   }
 
-  // Trigger orchestrator via API endpoint (fire-and-forget).
-  // Using fetch() is more reliable than after() across all environments (dev + prod).
-  // We don't await this — redirect happens immediately and the spinner polls for completion.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
-    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  
-  // We must not await this fetch, but we can attach a .then to ensure it fires.
-  fetch(`${baseUrl}/api/process-case`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ caseId: newCase.id }),
-  }).catch((e) => console.error('[Action] Failed to trigger orchestrator:', e));
+  // Trigger orchestrator natively in the background without blocking the redirect.
+  // Next.js 'after' guarantees Vercel will not freeze the container.
+  after(async () => {
+    try {
+      await runOrchestrator(newCase.id);
+    } catch (e) {
+      console.error('[Action] Orchestrator error:', e);
+    }
+  });
 
   // Redirect to case detail — shows processing spinner while AI orchestrator runs
   redirect(`/case/${newCase.id}`);
@@ -268,16 +268,14 @@ export async function submitClarification(caseId: string, answersData: Record<st
 
   if (error) throw new Error('Gagal menyimpan klarifikasi');
 
-  // Trigger the orchestrator via API endpoint so it doesn't freeze when action completes
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
-    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    
-  fetch(`${baseUrl}/api/process-case`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ caseId }),
-  }).catch((e) => console.error('[Action] Failed to trigger orchestrator:', e));
+  // Trigger the orchestrator natively in the background
+  after(async () => {
+    try {
+      await runOrchestrator(caseId);
+    } catch (e) {
+      console.error('[Action] Orchestrator error:', e);
+    }
+  });
 
   revalidatePath('/dashboard');
   revalidatePath(`/case/${caseId}`);
