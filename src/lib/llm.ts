@@ -81,8 +81,9 @@ async function callGeminiNative(
 
     if (res.status === 429 || res.status === 503) {
       attempts++;
-      console.warn(`[LLM] API Error (${res.status}). Retrying in 30 seconds... (Attempt ${attempts}/${maxAttempts})`);
-      await new Promise((resolve) => setTimeout(resolve, 30000));
+      const delay = 2000 * Math.pow(2, attempts - 1);
+      console.warn(`[LLM] API Error (${res.status}). Retrying in ${delay/1000} seconds... (Attempt ${attempts}/${maxAttempts})`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
       continue;
     }
     break;
@@ -143,8 +144,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
     if (res.status === 429 || res.status === 503) {
       attempts++;
-      console.warn(`[LLM Embedding] API Error (${res.status}). Retrying in 30 seconds... (Attempt ${attempts}/${maxAttempts})`);
-      await new Promise((resolve) => setTimeout(resolve, 30000));
+      const delay = 2000 * Math.pow(2, attempts - 1);
+      console.warn(`[LLM Embedding] API Error (${res.status}). Retrying in ${delay/1000} seconds... (Attempt ${attempts}/${maxAttempts})`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
       continue;
     }
     break;
