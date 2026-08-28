@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runOrchestrator } from '@/lib/orchestrator';
 
+export const maxDuration = 60; // Fix Vercel timeout limit
+
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   let caseId: string | undefined;
 
@@ -23,19 +26,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'caseId is required' }, { status: 400 });
   }
 
-  // Respond immediately — orchestrator runs in the background
-  // In a real production setup this would be a queue worker (e.g. Vercel Queue)
-  // For MVP, we run in-process after returning the response.
-  const response = NextResponse.json({ status: 'processing', caseId }, { status: 202 });
+  // Await the orchestrator so Vercel does not freeze the container early
+  try {
+    await runOrchestrator(caseId);
+  } catch (err) {
+    console.error('[ProcessCase] Unhandled orchestrator error:', err);
+  }
 
-  // Run orchestrator after response is sent (Node.js event loop allows this)
-  setImmediate(async () => {
-    try {
-      await runOrchestrator(caseId!);
-    } catch (err) {
-      console.error('[ProcessCase] Unhandled orchestrator error:', err);
-    }
-  });
-
-  return response;
+  return NextResponse.json({ status: 'completed', caseId }, { status: 200 });
 }

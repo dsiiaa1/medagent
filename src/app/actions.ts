@@ -264,8 +264,13 @@ export async function submitClarification(caseId: string, answersData: Record<st
 
   if (error) throw new Error('Gagal menyimpan klarifikasi');
 
-  // Trigger the orchestrator again asynchronously
-  runOrchestrator(caseId).catch(console.error);
+  // Trigger the orchestrator via API endpoint so it doesn't freeze when action completes
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  fetch(`${baseUrl}/api/process-case`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ caseId }),
+  }).catch((e) => console.error('[Action] Failed to trigger orchestrator:', e));
 
   revalidatePath('/dashboard');
   revalidatePath(`/case/${caseId}`);
