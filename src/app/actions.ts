@@ -12,8 +12,6 @@ import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { runOrchestrator } from '@/lib/orchestrator';
 
-export const maxDuration = 60; // Allow 60 seconds on Vercel for background AI tasks
-
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
