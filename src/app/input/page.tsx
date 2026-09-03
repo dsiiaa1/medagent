@@ -37,6 +37,8 @@ function useVoiceDictation() {
   ) => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechGrammarList =
+      (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
 
     if (!SpeechRecognition) {
       alert('Browser Anda tidak mendukung Speech Recognition. Gunakan Chrome/Edge.');
@@ -46,11 +48,31 @@ function useVoiceDictation() {
     const recognition = new SpeechRecognition();
     recognition.lang = 'id-ID';
     recognition.interimResults = false;
-    recognition.continuous = false;
+    recognition.continuous = true;
+
+    if (SpeechGrammarList) {
+      const medicalTerms = [
+        'trauma', 'kecelakaan', 'sesak', 'napas', 'nyeri', 'dada', 'perut', 'kepala', 
+        'hebat', 'lemas', 'pingsan', 'darah', 'perdarahan', 'demam', 'tinggi', 'kejang',
+        'penurunan', 'kesadaran', 'akut', 'hipertensi', 'diabetes', 'jantung', 'alergi',
+        'mual', 'muntah', 'batuk', 'pilek', 'pusing', 'luka'
+      ];
+      const grammar = '#JSGF V1.0; grammar terms; public <term> = ' + medicalTerms.join(' | ') + ' ;';
+      const speechRecognitionList = new SpeechGrammarList();
+      speechRecognitionList.addFromString(grammar, 1);
+      recognition.grammars = speechRecognitionList;
+    }
 
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      onResult(transcript);
+      let newText = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          newText += event.results[i][0].transcript + ' ';
+        }
+      }
+      if (newText.trim()) {
+        onResult(newText.trim());
+      }
     };
 
     recognition.onend = () => {
@@ -58,7 +80,10 @@ function useVoiceDictation() {
       onEnd?.();
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: any) => {
+      if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        console.error('Speech recognition error', event.error);
+      }
       setIsRecording(false);
     };
 
@@ -388,7 +413,7 @@ export default function InputPage() {
                       keluhanVoice.stopDictation();
                     } else {
                       keluhanVoice.startDictation((text) => {
-                        setKeluhanText(prev => prev ? `${prev}. ${text}` : text);
+                        setKeluhanText(prev => prev ? `${prev} ${text}` : text);
                       });
                     }
                   }}
