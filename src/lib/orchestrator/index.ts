@@ -246,12 +246,23 @@ export async function runOrchestrator(caseId: string): Promise<void> {
         if (scoringResult.triageData.confidence_level === 'low') {
           // Find missing fields
           const features = scoringResult.triageData.patient_features as PatientFeatures;
-          const { missingFields } = computeConfidence(features || {});
+          const { missingFields: vitalMissing } = computeConfidence(features || {});
+          const missingFields = [...vitalMissing];
+          
+          if (!typedCase.riwayat_medis?.kondisi_kronis || typedCase.riwayat_medis.kondisi_kronis.length === 0) {
+            missingFields.push('kondisi_kronis');
+          }
+          if (!typedCase.riwayat_medis?.alergi || typedCase.riwayat_medis.alergi.length === 0) {
+            missingFields.push('alergi');
+          }
+          if (!typedCase.riwayat_medis?.obat_dikonsumsi || typedCase.riwayat_medis.obat_dikonsumsi.length === 0) {
+            missingFields.push('obat_dikonsumsi');
+          }
           
           if (missingFields.length > 0) {
             await logTrace(caseId, 'clarify_with_nurse', 'started', { missingFields });
             const questions = await generateClarificationQuestions(typedCase.keluhan_utama, missingFields);
-            const clarificationData: ClarificationData = { questions, resolved: false };
+            const clarificationData: ClarificationData = { questions, missingFields, resolved: false };
             
             updateData.current_node = 'clarify_with_nurse';
             updateData.clarification_data = clarificationData;

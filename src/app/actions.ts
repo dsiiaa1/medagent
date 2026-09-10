@@ -238,13 +238,25 @@ export async function rejectCase(
 export async function submitClarification(caseId: string, answersData: Record<string, any>) {
   const admin = getSupabaseAdmin();
 
-  // Load the current case to get existing vital signs
-  const { data: caseRow } = await admin.from('cases').select('vital_signs').eq('id', caseId).single();
+  // Load the current case to get existing vital signs and riwayat medis
+  const { data: caseRow } = await admin.from('cases').select('vital_signs, riwayat_medis').eq('id', caseId).single();
   if (!caseRow) throw new Error('Kasus tidak ditemukan');
+
+  const historyFields = ['kondisi_kronis', 'alergi', 'obat_dikonsumsi'];
+  const vitalUpdates: Record<string, any> = {};
+  const historyUpdates: Record<string, any> = {};
+
+  Object.entries(answersData).forEach(([key, value]) => {
+    if (historyFields.includes(key)) {
+      historyUpdates[key] = value;
+    } else {
+      vitalUpdates[key] = value;
+    }
+  });
 
   const mergedVitals = {
     ...caseRow.vital_signs,
-    ...answersData, // only merge fields that were asked and answered
+    ...vitalUpdates, // only merge fields that were asked and answered
   };
 
   // Convert empty strings to null or remove them, convert to number where applicable
@@ -256,10 +268,23 @@ export async function submitClarification(caseId: string, answersData: Record<st
     }
   });
 
+  const mergedHistory: Record<string, string[]> = {
+    ...(caseRow.riwayat_medis as Record<string, string[]> || {}),
+  };
+
+  Object.keys(historyUpdates).forEach(key => {
+    const rawValue = historyUpdates[key];
+    if (typeof rawValue === 'string') {
+      const parsed = rawValue.split(',').map(s => s.trim()).filter(s => s.toLowerCase() !== 'tidak ada' && s.length > 0);
+      mergedHistory[key] = parsed;
+    }
+  });
+
   const { error } = await admin
     .from('cases')
     .update({
       vital_signs: mergedVitals,
+      riwayat_medis: mergedHistory,
       current_node: 'urgency_scoring', // resume the flow
     })
     .eq('id', caseId);

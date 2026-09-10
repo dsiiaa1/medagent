@@ -87,6 +87,7 @@ export interface SoapSummary {
 
 export interface ClarificationData {
   questions: string[];
+  missingFields: string[];
   resolved: boolean;
 }
 
