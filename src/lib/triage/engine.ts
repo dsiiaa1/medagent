@@ -256,7 +256,7 @@ function computePediatricEsiScore(features: PatientFeatures, ageMonths: number, 
 // ── Confidence check (§4.3.1 step d) ────────────────────────────────────────
 
 const REQUIRED_VITALS: (keyof PatientFeatures)[] = [
-  'spo2', 'systolic', 'heart_rate', 'gcs', 'respiratory_rate', 'temperature',
+  'spo2', 'systolic', 'diastolic', 'heart_rate', 'gcs', 'respiratory_rate', 'temperature',
 ];
 
 export function computeConfidence(features: PatientFeatures): {

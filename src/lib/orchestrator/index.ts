@@ -242,36 +242,33 @@ export async function runOrchestrator(caseId: string): Promise<void> {
           drug_interactions: drugResult.drugInteractions,
         };
 
-        // Clarification Loop Check
-        if (scoringResult.triageData.confidence_level === 'low') {
-          // Find missing fields
-          const features = scoringResult.triageData.patient_features as PatientFeatures;
-          const { missingFields: vitalMissing } = computeConfidence(features || {});
-          const missingFields = [...vitalMissing];
+        // Clarification Loop Check: trigger if ANY missing fields are found (strict mode / rewel)
+        const features = scoringResult.triageData.patient_features as PatientFeatures;
+        const { missingFields: vitalMissing } = computeConfidence(features || {});
+        const missingFields = [...vitalMissing];
+        
+        if (!typedCase.riwayat_medis?.kondisi_kronis || typedCase.riwayat_medis.kondisi_kronis.length === 0) {
+          missingFields.push('kondisi_kronis');
+        }
+        if (!typedCase.riwayat_medis?.alergi || typedCase.riwayat_medis.alergi.length === 0) {
+          missingFields.push('alergi');
+        }
+        if (!typedCase.riwayat_medis?.obat_dikonsumsi || typedCase.riwayat_medis.obat_dikonsumsi.length === 0) {
+          missingFields.push('obat_dikonsumsi');
+        }
+        
+        if (missingFields.length > 0) {
+          await logTrace(caseId, 'clarify_with_nurse', 'started', { missingFields });
+          const questions = await generateClarificationQuestions(typedCase.keluhan_utama, missingFields);
+          const clarificationData: ClarificationData = { questions, missingFields, resolved: false };
           
-          if (!typedCase.riwayat_medis?.kondisi_kronis || typedCase.riwayat_medis.kondisi_kronis.length === 0) {
-            missingFields.push('kondisi_kronis');
-          }
-          if (!typedCase.riwayat_medis?.alergi || typedCase.riwayat_medis.alergi.length === 0) {
-            missingFields.push('alergi');
-          }
-          if (!typedCase.riwayat_medis?.obat_dikonsumsi || typedCase.riwayat_medis.obat_dikonsumsi.length === 0) {
-            missingFields.push('obat_dikonsumsi');
-          }
+          updateData.current_node = 'clarify_with_nurse';
+          updateData.clarification_data = clarificationData;
+          const { error: updErr } = await admin.from('cases').update(updateData).eq('id', caseId);
+          if (updErr) throw new Error(`DB Update Error (clarify_with_nurse): ${updErr.message}`);
           
-          if (missingFields.length > 0) {
-            await logTrace(caseId, 'clarify_with_nurse', 'started', { missingFields });
-            const questions = await generateClarificationQuestions(typedCase.keluhan_utama, missingFields);
-            const clarificationData: ClarificationData = { questions, missingFields, resolved: false };
-            
-            updateData.current_node = 'clarify_with_nurse';
-            updateData.clarification_data = clarificationData;
-            const { error: updErr } = await admin.from('cases').update(updateData).eq('id', caseId);
-            if (updErr) throw new Error(`DB Update Error (clarify_with_nurse): ${updErr.message}`);
-            
-            await logTrace(caseId, 'clarify_with_nurse', 'completed', { questions_asked: questions.length });
-            return; // Stop and wait for user input
-          }
+          await logTrace(caseId, 'clarify_with_nurse', 'completed', { questions_asked: questions.length });
+          return; // Stop and wait for user input
         }
 
         updateData.current_node = 'generate_soap';
