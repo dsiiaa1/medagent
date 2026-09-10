@@ -27,8 +27,10 @@ create type orchestrator_node as enum (
   'intake',
   'retrieve_context',
   'urgency_scoring',
+  'clarify_with_nurse',
   'drug_interaction_check',
   'generate_soap',
+  'self_critique',
   'await_doctor_verification',
   'completed',
   'error'
@@ -87,6 +89,9 @@ create table public.cases (
 
   -- { subjective, objective, assessment, plan }
   soap_summary          jsonb,
+
+  clarification_data    jsonb,
+  critique_feedback     jsonb,
 
   -- ── Verifikasi Dokter (§4.7) ──────────────────────────────────────────────
   verification_status   verification_status not null default 'pending',
